@@ -22,7 +22,12 @@ import VendorProfile from '../pages/planner/VendorProfile';
 import VendorLayout from '../layouts/VendorLayout';
 import VendorDashboard from '../pages/vendor/VendorDashboard';
 
+// Admin Dashboard components
+import AdminLayout from '../layouts/AdminLayout';
+import AdminDashboard from '../pages/admin/AdminDashboard';
+
 import GuestRoute from '../components/GuestRoute';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 export const AppRoutes = () => {
   return (
@@ -41,7 +46,11 @@ export const AppRoutes = () => {
       } />
 
       {/* Client Dashboard Routes */}
-      <Route path="/client" element={<ClientLayout />}>
+      <Route path="/client" element={
+        <ProtectedRoute allowedRoles={['client']}>
+          <ClientLayout />
+        </ProtectedRoute>
+      }>
         <Route index element={<Navigate to="/client/dashboard" replace />} />
         <Route path="dashboard" element={<ClientDashboard />} />
         <Route path="planners" element={<FindPlanners />} />
@@ -51,7 +60,11 @@ export const AppRoutes = () => {
       </Route>
 
       {/* Planner Dashboard Routes */}
-      <Route path="/planner" element={<PlannerLayout />}>
+      <Route path="/planner" element={
+        <ProtectedRoute allowedRoles={['planner']}>
+          <PlannerLayout />
+        </ProtectedRoute>
+      }>
         <Route index element={<Navigate to="/planner/dashboard" replace />} />
         <Route path="dashboard" element={<PlannerDashboard />} />
         <Route path="vendors" element={<AvailableVendors />} />
@@ -60,10 +73,24 @@ export const AppRoutes = () => {
       </Route>
 
       {/* Vendor Dashboard Routes */}
-      <Route path="/vendor" element={<VendorLayout />}>
+      <Route path="/vendor" element={
+        <ProtectedRoute allowedRoles={['vendor']}>
+          <VendorLayout />
+        </ProtectedRoute>
+      }>
         <Route index element={<Navigate to="/vendor/dashboard" replace />} />
         <Route path="dashboard" element={<VendorDashboard />} />
         <Route path="chat/:plannerId" element={<DirectChat />} />
+      </Route>
+
+      {/* Admin Dashboard Routes */}
+      <Route path="/admin" element={
+        <ProtectedRoute allowedRoles={['superadmin']}>
+          <AdminLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
       </Route>
     </Routes>
   );

@@ -14,6 +14,7 @@ export const AvailableVendors = () => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [weddingFilter, setWeddingFilter] = useState('');
 
   // Shortlist / Assignment modal triggers
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -69,6 +70,31 @@ export const AvailableVendors = () => {
   });
 
   const activeClients = (requestsResponse?.data || []).filter(r => r.status === 'Accepted');
+
+  // 4. Fetch Planner Assignments to check vendor bookings
+  const { data: assignmentsResponse } = useQuery({
+    queryKey: ['plannerAssignments'],
+    queryFn: async () => {
+      const res = await fetch('/api/vendor-assignments/planner');
+      if (!res.ok) throw new Error('Failed to load assignments');
+      return res.json();
+    }
+  });
+
+  const assignments = assignmentsResponse?.data || [];
+
+  // Helper to check if vendor is booked on a specific date
+  const isBookedOnDate = (vendorId, date) => {
+    if (!date) return false;
+    const targetDate = new Date(date).toDateString();
+    return assignments.some(a => {
+      const aVendorId = a.vendorId?._id || a.vendorId;
+      const aDate = new Date(a.date).toDateString();
+      return (aVendorId?.toString() === vendorId?.toString()) &&
+             (a.status === 'Accepted' || a.status === 'Completed') &&
+             (aDate === targetDate);
+    });
+  };
 
   // Shortlist Mutation
   const shortlistMutation = useMutation({
@@ -142,7 +168,18 @@ export const AvailableVendors = () => {
     const matchesCategory = categoryFilter === 'All' || v.vendorType === categoryFilter;
     const matchesStatus = statusFilter === 'All' || v.availabilityStatus === statusFilter;
 
-    return matchesSearch && matchesCategory && matchesStatus;
+    // Wedding matching logic (matches place & wedding date)
+    let matchesWedding = true;
+    if (weddingFilter) {
+      const selectedW = activeClients.find(c => c._id === weddingFilter);
+      if (selectedW) {
+        const locationMatches = v.location?.toLowerCase().trim() === selectedW.location?.toLowerCase().trim();
+        const dateMatches = !isBookedOnDate(v._id, selectedW.weddingDate);
+        matchesWedding = locationMatches && dateMatches;
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesWedding;
   });
 
   const getStatusColor = (status) => {
@@ -188,18 +225,34 @@ export const AvailableVendors = () => {
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white/50 dark:bg-[#0f172a]/40 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white/50 dark:bg-darkcard/40 p-4 rounded-3xl border border-rosegold/20 dark:border-goldAccent/15 backdrop-blur-md shadow-sm">
         
         {/* Search */}
-        <div className="md:col-span-6 relative">
+        <div className="md:col-span-4 relative">
           <input
             type="text"
-            placeholder="Search by business name, services, category..."
+            placeholder="Search by business name, services..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 text-sm outline-none transition-all focus:border-accent"
+            className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white dark:bg-darkbg border border-rosegold/20 dark:border-goldAccent/15 text-sm outline-none transition-all focus:border-accent"
           />
           <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4.5 h-4.5" />
+        </div>
+
+        {/* Wedding Match Filter */}
+        <div className="md:col-span-3">
+          <select
+            value={weddingFilter}
+            onChange={(e) => setWeddingFilter(e.target.value)}
+            className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-darkbg border border-rosegold/20 dark:border-goldAccent/15 text-sm outline-none focus:border-accent font-semibold"
+          >
+            <option value="">Match Hired Wedding...</option>
+            {activeClients.map(c => (
+              <option key={c._id} value={c._id}>
+                {c.clientId?.name?.name}'s Wedding ({c.location})
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Category Filter */}
@@ -207,7 +260,7 @@ export const AvailableVendors = () => {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 text-sm outline-none focus:border-accent"
+            className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-darkbg border border-rosegold/20 dark:border-goldAccent/15 text-sm outline-none focus:border-accent"
           >
             <option value="All">All Categories</option>
             {categories.filter(c => c !== 'All').map(cat => (
@@ -217,11 +270,11 @@ export const AvailableVendors = () => {
         </div>
 
         {/* Availability Filter */}
-        <div className="md:col-span-3">
+        <div className="md:col-span-2">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 text-sm outline-none focus:border-accent"
+            className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-darkbg border border-rosegold/20 dark:border-goldAccent/15 text-sm outline-none focus:border-accent"
           >
             <option value="All">All Statuses</option>
             <option value="Available">Available</option>
@@ -238,7 +291,7 @@ export const AvailableVendors = () => {
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="rounded-[40px] border border-slate-200 dark:border-slate-850 p-6 space-y-4 animate-pulse bg-white dark:bg-[#0f172a]">
+            <div key={n} className="rounded-[40px] border border-rosegold/20 dark:border-goldAccent/15 p-6 space-y-4 animate-pulse bg-white dark:bg-darkcard">
               <div className="w-full aspect-[4/5] rounded-[30px] bg-slate-200 dark:bg-slate-800" />
               <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3" />
               <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
@@ -254,7 +307,7 @@ export const AvailableVendors = () => {
           <h3 className="text-base font-extrabold text-slate-850 dark:text-white">No vendors found matching your filters</h3>
           <button
             onClick={() => { setSearch(''); setCategoryFilter('All'); setStatusFilter('All'); }}
-            className="mt-6 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-xs font-bold rounded-xl"
+            className="mt-6 px-5 py-2.5 bg-cream hover:bg-cream/80 dark:bg-darkbg dark:hover:bg-darkbg/50 text-xs font-bold rounded-xl"
           >
             Reset Filters
           </button>
@@ -273,11 +326,11 @@ export const AvailableVendors = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
-                className="glass-card border border-slate-200/50 dark:border-slate-800/50 rounded-[40px] p-5 shadow-lg flex flex-col justify-between hover:shadow-xl hover:border-accent/35 transition-all duration-300 relative group"
+                className="bg-white/90 dark:bg-darkcard/95 border border-rosegold/30 dark:border-goldAccent/25 rounded-[40px] p-5 shadow-lg flex flex-col justify-between hover:shadow-xl hover:border-accent/50 dark:hover:border-goldAccent/50 transition-all duration-300 relative group"
               >
                 
-                {/* Cover & Logo Arch Area */}
-                <div className="relative w-full aspect-[4/5] rounded-[30px] rounded-t-[100px] overflow-hidden border border-slate-200/60 dark:border-slate-850 shadow-inner">
+                {/* Cover & Logo Area */}
+                <div className="relative w-full aspect-[4/5] rounded-[30px] overflow-hidden border border-rosegold/30 dark:border-goldAccent/25 shadow-inner">
                   <img
                     src={vendor.coverImage}
                     alt={vendor.businessName}
@@ -299,7 +352,7 @@ export const AvailableVendors = () => {
                   </div>
 
                   {/* Rating badge */}
-                  <div className="absolute top-4 right-4 flex items-center space-x-1 px-3 py-1 rounded-full bg-white/95 dark:bg-[#0f172a]/95 text-amber-500 font-extrabold text-[10px] shadow border border-slate-200/50">
+                  <div className="absolute top-4 right-4 flex items-center space-x-1 px-3 py-1 rounded-full bg-white/95 dark:bg-darkcard/95 text-amber-500 font-extrabold text-[10px] shadow border border-rosegold/20 dark:border-goldAccent/15">
                     <FiStar className="fill-current w-3.5 h-3.5" />
                     <span>{vendor.rating}</span>
                   </div>
@@ -314,7 +367,7 @@ export const AvailableVendors = () => {
                 {/* Details & Services */}
                 <div className="py-4 space-y-4 flex-1 flex flex-col justify-between">
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center text-[10.5px] text-slate-500 font-semibold">
+                    <div className="flex justify-between items-center text-[11px] text-slate-700 dark:text-slate-350 font-bold">
                       <span className="flex items-center">
                         <FiMapPin className="mr-1 text-accent" />
                         {vendor.location}
@@ -325,12 +378,12 @@ export const AvailableVendors = () => {
                     {/* Services tag cloud */}
                     <div className="flex flex-wrap gap-1.5 pt-1.5">
                       {vendor.servicesOffered?.slice(0, 3).map((serv) => (
-                        <span key={serv} className="text-[9.5px] bg-slate-100 dark:bg-slate-900 border border-slate-200/20 px-2 py-0.5 rounded text-slate-650 dark:text-slate-400">
+                        <span key={serv} className="text-[9.5px] bg-cream/40 dark:bg-goldAccent/10 border border-rosegold/20 dark:border-goldAccent/25 px-2.5 py-1 rounded-full text-slate-800 dark:text-goldAccent font-semibold">
                           {serv}
                         </span>
                       ))}
                       {vendor.servicesOffered?.length > 3 && (
-                        <span className="text-[9.5px] font-bold text-accent px-1.5 py-0.5">
+                        <span className="text-[9.5px] font-extrabold text-accent px-1.5 py-0.5">
                           +{vendor.servicesOffered.length - 3} More
                         </span>
                       )}
@@ -338,12 +391,12 @@ export const AvailableVendors = () => {
                   </div>
 
                   {/* Pricing / latency details */}
-                  <div className="flex justify-between items-center border-t border-b border-slate-200/40 dark:border-slate-800/40 py-2 text-[10px] font-bold text-slate-650 dark:text-slate-350">
+                  <div className="flex justify-between items-center border-t border-b border-rosegold/20 dark:border-goldAccent/20 py-2 text-[10.5px] font-extrabold text-slate-800 dark:text-slate-250">
                     <span className="flex items-center">
                       <FiDollarSign className="mr-1 text-accent w-4 h-4" />
                       {vendor.priceRange}
                     </span>
-                    <span className="text-[9px] text-slate-500">
+                    <span className="text-[9.5px] text-slate-500 dark:text-slate-400">
                       Response: {vendor.responseTime}
                     </span>
                   </div>
@@ -354,7 +407,7 @@ export const AvailableVendors = () => {
                     {/* View Profile */}
                     <button
                       onClick={() => navigate(`/planner/vendors/${vendor._id}`)}
-                      className="py-2.5 border border-slate-200 hover:border-accent hover:text-accent dark:border-slate-800 text-[10px] font-bold rounded-xl transition-all"
+                      className="py-2.5 border border-rosegold/30 dark:border-goldAccent/25 hover:border-accent dark:hover:border-goldAccent text-slate-700 dark:text-slate-300 hover:text-accent dark:hover:text-goldAccent hover:bg-rosegold/5 dark:hover:bg-goldAccent/5 text-[10.5px] font-extrabold rounded-xl transition-all"
                     >
                       View Profile
                     </button>
@@ -363,10 +416,10 @@ export const AvailableVendors = () => {
                     <button
                       onClick={() => handleShortlist(vendor._id)}
                       disabled={isShortlisted || shortlistMutation.isPending}
-                      className={`py-2.5 border text-[10px] font-bold rounded-xl transition-all flex items-center justify-center space-x-1 ${
+                      className={`py-2.5 border text-[10.5px] font-extrabold rounded-xl transition-all flex items-center justify-center space-x-1 ${
                         isShortlisted 
-                          ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500 cursor-default' 
-                          : 'border-slate-200 hover:border-accent hover:text-accent dark:border-slate-800'
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 cursor-default' 
+                          : 'border-rosegold/30 dark:border-goldAccent/25 hover:border-accent dark:hover:border-goldAccent text-slate-700 dark:text-slate-300 hover:text-accent dark:hover:text-goldAccent hover:bg-rosegold/5 dark:hover:bg-goldAccent/5'
                       }`}
                     >
                       <FiHeart className={`w-3.5 h-3.5 ${isShortlisted ? 'fill-current text-emerald-500' : ''}`} />
@@ -376,7 +429,7 @@ export const AvailableVendors = () => {
                     {/* Chat Vendor */}
                     <button
                       onClick={() => navigate(`/planner/chat/${vendor.userId?._id || vendor.name?._id || vendor.userId}`)}
-                      className="py-2.5 border border-slate-200 hover:border-accent hover:text-accent dark:border-slate-800 text-[10px] font-bold rounded-xl transition-all flex items-center justify-center space-x-1.5"
+                      className="py-2.5 border border-rosegold/30 dark:border-goldAccent/25 hover:border-accent dark:hover:border-goldAccent text-slate-700 dark:text-slate-300 hover:text-accent dark:hover:text-goldAccent hover:bg-rosegold/5 dark:hover:bg-goldAccent/5 text-[10.5px] font-extrabold rounded-xl transition-all flex items-center justify-center space-x-1.5"
                     >
                       <FiMessageSquare className="w-3.5 h-3.5" />
                       <span>Chat Vendor</span>
@@ -385,7 +438,7 @@ export const AvailableVendors = () => {
                     {/* Assign Vendor to Event */}
                     <button
                       onClick={() => { setSelectedVendor(vendor); setIsAssignOpen(true); }}
-                      className="py-2.5 bg-gradient-to-r from-accent to-primary text-white hover:scale-[1.02] text-[10px] font-bold rounded-xl transition-all shadow-md flex items-center justify-center space-x-1.5"
+                      className="py-2.5 bg-slate-900 dark:bg-gradient-to-r dark:from-accent dark:to-primary text-white dark:text-slate-950 font-extrabold text-[10.5px] rounded-xl hover:scale-[1.02] shadow-md flex items-center justify-center space-x-1.5 transition-all"
                     >
                       <FiBriefcase className="w-3.5 h-3.5" />
                       <span>Assign Event</span>
@@ -418,7 +471,7 @@ export const AvailableVendors = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-2xl relative z-10 overflow-hidden text-xs font-semibold text-slate-700 dark:text-slate-350"
+              className="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl border border-rosegold/20 dark:border-goldAccent/15 shadow-2xl relative z-10 overflow-hidden text-xs font-semibold text-slate-700 dark:text-slate-350"
             >
               
               <div className="flex justify-between items-center mb-6">
@@ -430,7 +483,7 @@ export const AvailableVendors = () => {
                 </div>
                 <button
                   onClick={() => setIsAssignOpen(false)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                  className="p-1.5 rounded-full hover:bg-cream dark:hover:bg-darkbg/50 text-slate-400"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
@@ -444,15 +497,26 @@ export const AvailableVendors = () => {
                   <select
                     required
                     value={assignForm.weddingId}
-                    onChange={(e) => setAssignForm({ ...assignForm, weddingId: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    onChange={(e) => {
+                      const wId = e.target.value;
+                      const selectedW = activeClients.find(c => (c.clientId?._id || c.clientId) === wId);
+                      const wDate = selectedW?.weddingDate ? new Date(selectedW.weddingDate).toISOString().split('T')[0] : '';
+                      setAssignForm({
+                        ...assignForm,
+                        weddingId: wId,
+                        date: wDate
+                      });
+                    }}
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   >
                     <option value="">Select Wedding Event...</option>
-                    {activeClients.map(c => (
-                      <option key={c._id} value={c.clientId?._id || c.clientId}>
-                        {c.clientId?.name?.name}'s Wedding ({c.weddingType})
-                      </option>
-                    ))}
+                    {activeClients
+                      .filter(c => c.location?.toLowerCase().trim() === selectedVendor?.location?.toLowerCase().trim())
+                      .map(c => (
+                        <option key={c._id} value={c.clientId?._id || c.clientId}>
+                          {c.clientId?.name?.name}'s Wedding ({c.weddingType})
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -465,7 +529,7 @@ export const AvailableVendors = () => {
                     value={assignForm.role}
                     onChange={(e) => setAssignForm({ ...assignForm, role: e.target.value })}
                     placeholder="e.g. Floral Mandap, Food Catering..."
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
@@ -478,7 +542,7 @@ export const AvailableVendors = () => {
                     value={assignForm.budget}
                     onChange={(e) => setAssignForm({ ...assignForm, budget: e.target.value })}
                     placeholder="e.g. 500000"
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
@@ -490,14 +554,14 @@ export const AvailableVendors = () => {
                     required
                     value={assignForm.date}
                     onChange={(e) => setAssignForm({ ...assignForm, date: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
                 <motion.button
                   type="submit"
                   disabled={assignMutation.isPending}
-                  className="w-full py-3.5 bg-gradient-to-r from-accent to-primary text-white font-bold text-xs rounded-2xl shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center"
+                  className="w-full py-3.5 bg-slate-900 dark:bg-gradient-to-r dark:from-accent dark:to-primary text-white dark:text-slate-950 font-extrabold text-xs rounded-2xl shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >

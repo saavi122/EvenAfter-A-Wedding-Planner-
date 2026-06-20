@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FiMenu, FiX } from 'react-icons/fi';
 import ThemeToggle from './ThemeToggle';
+import logoImage from '../assets/logo.png';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -57,11 +58,14 @@ const Navbar = () => {
           <div className="flex-shrink-0">
             <Link
               to="/"
-              className={`font-playfair text-2xl md:text-3xl font-bold tracking-widest transition-colors duration-500 ${
-                isTransparent ? 'text-white drop-shadow-md' : 'text-darktext dark:text-goldAccent'
-              }`}
+              className="flex items-center space-x-2.5 group"
             >
-              EvenAfter
+              <img src={logoImage} alt="EvenAfter Logo" className="w-9 h-9 rounded-lg object-cover shadow-md transition-transform group-hover:scale-105" />
+              <span className={`font-playfair text-xl md:text-2xl font-bold tracking-widest transition-colors duration-500 ${
+                isTransparent ? 'text-white drop-shadow-md' : 'text-darktext dark:text-goldAccent'
+              }`}>
+                EvenAfter
+              </span>
             </Link>
           </div>
 

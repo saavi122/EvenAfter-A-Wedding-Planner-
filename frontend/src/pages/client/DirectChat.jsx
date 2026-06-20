@@ -14,6 +14,12 @@ export const DirectChat = () => {
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
 
+  // Helper to resolve display name based on profile type
+  const getDisplayName = (convItem) => {
+    if (!convItem) return '';
+    return convItem.profile?.businessName || convItem.profile?.companyName || convItem.user?.name || '';
+  };
+
   // Chat state
   const [typedMessage, setTypedMessage] = useState('');
   const [typing, setTyping] = useState(false);
@@ -213,18 +219,18 @@ export const DirectChat = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-140px)] flex border border-slate-200/50 dark:border-slate-800/50 rounded-3xl overflow-hidden bg-white dark:bg-[#0f172a] shadow-lg relative">
+    <div className="h-[calc(100vh-140px)] flex border border-rosegold/20 dark:border-goldAccent/15 rounded-3xl overflow-hidden bg-white dark:bg-darkcard shadow-lg relative">
       
       {/* 1. Left side: Dialogues list */}
-      <div className={`w-full md:w-[320px] border-r border-slate-200/50 dark:border-slate-800/50 flex flex-col ${
+      <div className={`w-full md:w-[320px] border-r border-rosegold/20 dark:border-goldAccent/15 flex flex-col ${
         plannerId && plannerId !== 'list' ? 'hidden md:flex' : 'flex'
       }`}>
-        <div className="p-4 border-b border-slate-200/50 dark:border-slate-800/50">
+        <div className="p-4 border-b border-rosegold/20 dark:border-goldAccent/15">
           <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">Active Dialogues</h3>
           <p className="text-[10px] text-slate-500 mt-1">Direct message panel with wedding coordinators</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/40">
+        <div className="flex-1 overflow-y-auto divide-y divide-cream/30 dark:divide-goldAccent/10">
           {listLoading && (
             <div className="p-4 text-center text-xs text-slate-450 animate-pulse">Loading channels...</div>
           )}
@@ -239,29 +245,32 @@ export const DirectChat = () => {
                 key={cItem.user._id}
                 onClick={() => handleChatUserNavigation(cItem.user._id)}
                 className={`p-4 flex items-center space-x-3 cursor-pointer transition-colors ${
-                  isSelected ? 'bg-slate-50 dark:bg-slate-900/40 border-l-4 border-accent' : 'hover:bg-slate-50/50 dark:hover:bg-slate-900/10'
+                  isSelected ? 'bg-cream/45 dark:bg-darkbg/40 border-l-4 border-accent' : 'hover:bg-cream/20 dark:hover:bg-darkcard/30'
                 }`}
               >
                 <div className="relative">
                   <img
                     src={getProfileImage(cItem)}
-                    alt={cItem.user.name}
+                    alt={getDisplayName(cItem)}
                     className="w-11 h-11 rounded-full object-cover border border-slate-200/50"
                   />
                   {(onlineUsers.has(cItem.user._id) || cItem.user._id === plannerId) && (
-                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0f172a]" />
+                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-darkcard" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{cItem.user.name}</h4>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{getDisplayName(cItem)}</h4>
                     {cItem.unreadCount > 0 && (
-                      <span className="bg-accent text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                      <span className="bg-accent text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full">
                         {cItem.unreadCount}
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-slate-500 capitalize">{cItem.user.role} {cItem.profile?.companyName ? `• ${cItem.profile.companyName}` : ''}</p>
+                  <p className="text-[10px] text-slate-500 capitalize">
+                    {cItem.user.role}
+                    {getDisplayName(cItem) !== cItem.user.name ? ` • ${cItem.user.name}` : ''}
+                  </p>
                   <p className="text-[10.5px] text-slate-400 dark:text-slate-500 truncate mt-1">
                     {cItem.lastMessage}
                   </p>
@@ -273,7 +282,7 @@ export const DirectChat = () => {
       </div>
 
       {/* 2. Right side: Chat Window */}
-      <div className={`flex-1 flex flex-col bg-slate-50/30 dark:bg-[#070b13] ${
+      <div className={`flex-1 flex flex-col bg-cream/10 dark:bg-darkbg/40 ${
         !plannerId || plannerId === 'list' ? 'hidden md:flex justify-center items-center p-8' : 'flex'
       }`}>
         
@@ -288,37 +297,40 @@ export const DirectChat = () => {
         ) : (
           <>
             {/* Header */}
-            <div className="px-6 py-4 bg-white dark:bg-[#0f172a] border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center">
+            <div className="px-6 py-4 bg-white dark:bg-darkcard border-b border-rosegold/20 dark:border-goldAccent/15 flex justify-between items-center">
               
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => navigate(`/${user.role}/chat/list`)}
-                  className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+                  className="md:hidden p-1.5 rounded-lg hover:bg-cream dark:hover:bg-darkcard text-slate-500"
                 >
                   <FiChevronLeft className="w-5 h-5" />
                 </button>
 
                 <div className="relative">
                   <img
-                    src={recipientProfile?.profileImage || recipientProfile?.vendorLogo || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256"}
-                    alt={recipientUser?.name || "User"}
+                    src={activeConversation ? getProfileImage(activeConversation) : (recipientProfile?.profileImage || recipientProfile?.vendorLogo || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256")}
+                    alt={activeConversation ? getDisplayName(activeConversation) : (recipientUser?.name || "User")}
                     className="w-10 h-10 rounded-full object-cover"
                   />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0f172a]" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-darkcard" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                    {recipientUser?.name}
+                    {activeConversation ? getDisplayName(activeConversation) : recipientUser?.name}
                   </h4>
-                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{recipientUser?.role}</p>
+                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                    {recipientUser?.role}
+                    {activeConversation && getDisplayName(activeConversation) !== recipientUser?.name ? ` • Contact: ${recipientUser?.name}` : ''}
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-2">
-                <button className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
+                <button className="p-2.5 rounded-xl hover:bg-cream dark:hover:bg-darkcard text-slate-500 transition-colors">
                   <FiPhone className="w-4.5 h-4.5" />
                 </button>
-                <button className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
+                <button className="p-2.5 rounded-xl hover:bg-cream dark:hover:bg-darkcard text-slate-500 transition-colors">
                   <FiVideo className="w-4.5 h-4.5" />
                 </button>
               </div>
@@ -339,8 +351,8 @@ export const DirectChat = () => {
                   <div key={msg._id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[70%] rounded-2xl p-4 shadow-sm relative ${
                       isMine 
-                        ? 'bg-gradient-to-r from-accent to-primary text-white rounded-br-none' 
-                        : 'bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-200/50 dark:border-slate-800/50'
+                        ? 'bg-gradient-to-r from-accent to-primary text-slate-950 rounded-br-none' 
+                        : 'bg-white dark:bg-darkcard text-slate-800 dark:text-slate-200 rounded-bl-none border border-rosegold/20 dark:border-goldAccent/15'
                     }`}>
                       
                       <p className="text-xs leading-relaxed font-medium">{msg.message}</p>
@@ -374,7 +386,7 @@ export const DirectChat = () => {
 
               {partnerTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-white dark:bg-[#0f172a] rounded-2xl rounded-bl-none p-4 shadow-sm border border-slate-200/50 dark:border-slate-800/50 flex items-center space-x-1.5">
+                  <div className="bg-white dark:bg-darkcard rounded-2xl rounded-bl-none p-4 shadow-sm border border-rosegold/20 dark:border-goldAccent/15 flex items-center space-x-1.5">
                     <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 animate-bounce" />
                     <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 animate-bounce delay-150" />
                     <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 animate-bounce delay-300" />
@@ -386,7 +398,7 @@ export const DirectChat = () => {
             </div>
 
             {/* Chat Input Field */}
-            <div className="p-4 bg-white dark:bg-[#0f172a] border-t border-slate-200/50 dark:border-slate-800/50 relative">
+            <div className="p-4 bg-white dark:bg-darkcard border-t border-rosegold/20 dark:border-goldAccent/15 relative">
               
               <AnimatePresence>
                 {attachmentOpen && (
@@ -394,18 +406,18 @@ export const DirectChat = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-20 left-4 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 shadow-xl flex flex-col space-y-1 z-20 text-[11px] font-bold"
+                    className="absolute bottom-20 left-4 bg-white dark:bg-darkcard border border-rosegold/20 dark:border-goldAccent/15 rounded-2xl p-2.5 shadow-xl flex flex-col space-y-1 z-20 text-[11px] font-bold"
                   >
                     <button
                       onClick={handleAttachImage}
-                      className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-2 text-slate-700 dark:text-slate-350"
+                      className="px-4 py-2 hover:bg-cream dark:hover:bg-darkcard rounded-xl flex items-center space-x-2 text-slate-700 dark:text-slate-350"
                     >
                       <FiCamera className="w-4.5 h-4.5 text-accent" />
                       <span>Share Photo</span>
                     </button>
                     <button
                       onClick={handleAttachFile}
-                      className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-2 text-slate-700 dark:text-slate-350"
+                      className="px-4 py-2 hover:bg-cream dark:hover:bg-darkcard rounded-xl flex items-center space-x-2 text-slate-700 dark:text-slate-350"
                     >
                       <FiPaperclip className="w-4.5 h-4.5 text-accent" />
                       <span>Attach Document</span>
@@ -418,8 +430,8 @@ export const DirectChat = () => {
                 <button
                   type="button"
                   onClick={() => setAttachmentOpen(!attachmentOpen)}
-                  className={`p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors ${
-                    attachmentOpen ? 'bg-slate-100 dark:bg-slate-800 text-accent' : ''
+                  className={`p-3 rounded-2xl hover:bg-cream dark:hover:bg-darkcard text-slate-500 transition-colors ${
+                    attachmentOpen ? 'bg-cream dark:bg-darkcard text-accent' : ''
                   }`}
                 >
                   <FiPaperclip className="w-5 h-5" />
@@ -430,13 +442,13 @@ export const DirectChat = () => {
                   placeholder="Type a message to discuss your wedding brief..."
                   value={typedMessage}
                   onChange={(e) => setTypedMessage(e.target.value)}
-                  className="flex-1 px-4 py-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-sm transition-all focus:border-accent text-slate-850 dark:text-slate-100"
+                  className="flex-1 px-4 py-3.5 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-sm transition-all focus:border-accent text-slate-850 dark:text-slate-100"
                 />
 
                 <motion.button
                   type="submit"
                   disabled={!typedMessage.trim() || sendMessageMutation.isPending}
-                  className="p-3.5 bg-gradient-to-r from-accent to-primary text-white rounded-2xl shadow-lg shadow-accent/20 flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
+                  className="p-3.5 bg-gradient-to-r from-accent to-primary text-slate-950 rounded-2xl shadow-lg shadow-accent/20 flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >

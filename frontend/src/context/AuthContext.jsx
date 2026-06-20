@@ -1,26 +1,49 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    try {
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Validate session on mount
   useEffect(() => {
     const fetchMe = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const result = await res.json();
-          if (result.success) {
-            setUser(result.data.user);
-            setProfile(result.data.profile);
-          }
+        const res = await api.get('/auth/me');
+        if (res.data && res.data.success) {
+          setUser(res.data.data.user);
+          setProfile(res.data.data.profile);
+          localStorage.setItem('user', JSON.stringify(res.data.data.user));
+          localStorage.setItem('role', res.data.data.user.role);
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('role');
+          setUser(null);
+          setProfile(null);
         }
       } catch (error) {
         console.error("Session verification failed:", error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('role');
+        setUser(null);
+        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -29,76 +52,72 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password, role) => {
-    setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role }),
-      });
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result.message || 'Login failed');
+      const res = await api.post('/auth/login', { email, password, role });
+      const result = res.data;
+      if (!result || !result.success) {
+        throw new Error(result?.message || 'Login failed');
       }
 
-      // Login success
-      setUser(result.data.user);
-      // Fetch /me to get populated profiles
-      const meRes = await fetch('/api/auth/me');
-      if (meRes.ok) {
-        const meResult = await meRes.json();
-        if (meResult.success) {
-          setProfile(meResult.data.profile);
+      const { user: loggedInUser, token } = result.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+      localStorage.setItem('role', loggedInUser.role);
+      setUser(loggedInUser);
+
+      // Fetch /me to populate profile
+      try {
+        const meRes = await api.get('/auth/me');
+        if (meRes.data && meRes.data.success) {
+          setProfile(meRes.data.data.profile);
         }
+      } catch (e) {
+        console.error("Failed to fetch profile info:", e);
       }
+
       return result.data.user;
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Login failed';
+      throw new Error(errorMsg);
     }
   };
 
   const register = async (name, email, phone, password, role) => {
-    setLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, password, role }),
-      });
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result.message || 'Registration failed');
+      const res = await api.post('/auth/register', { name, email, phone, password, role });
+      const result = res.data;
+      if (!result || !result.success) {
+        throw new Error(result?.message || 'Registration failed');
       }
       return result.data;
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Registration failed';
+      throw new Error(errorMsg);
     }
   };
 
   const logout = async () => {
-    setLoading(true);
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await api.post('/auth/logout');
     } catch (e) {
-      console.error(e);
+      console.error("Logout backend call failed:", e);
     } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('role');
       setUser(null);
       setProfile(null);
-      setLoading(false);
     }
   };
 
   const refreshUser = async () => {
     try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const result = await res.json();
-        if (result.success) {
-          setUser(result.data.user);
-          setProfile(result.data.profile);
-        }
+      const res = await api.get('/auth/me');
+      if (res.data && res.data.success) {
+        setUser(res.data.data.user);
+        setProfile(res.data.data.profile);
+        localStorage.setItem('user', JSON.stringify(res.data.data.user));
+        localStorage.setItem('role', res.data.data.user.role);
       }
     } catch (error) {
       console.error("Profile refresh failed:", error);

@@ -135,10 +135,10 @@ export const ClientProfilePage = () => {
       </AnimatePresence>
 
       {/* Profile Header Block */}
-      <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-[#0f172a]">
+      <div className="relative rounded-3xl overflow-hidden shadow-xl border border-rosegold/20 dark:border-goldAccent/15 bg-white dark:bg-darkcard">
         
         {/* Cover Photo */}
-        <div className="h-[180px] md:h-[240px] w-full relative bg-slate-100 dark:bg-slate-900">
+        <div className="h-[180px] md:h-[240px] w-full relative bg-cream/40 dark:bg-darkbg">
           <img
             src={clientProfile.coverPhoto || "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200"}
             alt="Wedding Cover"
@@ -153,7 +153,7 @@ export const ClientProfilePage = () => {
             <img
               src={clientProfile.profilePhoto || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=256"}
               alt={userObj.name}
-              className="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-[#0f172a] shadow-2xl relative z-10 bg-white"
+              className="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-darkcard shadow-2xl relative z-10 bg-white"
             />
             <div className="space-y-1 z-10">
               <span className="text-[9px] font-bold text-accent bg-accent/15 px-3 py-0.5 rounded-full border border-accent/20">
@@ -179,7 +179,7 @@ export const ClientProfilePage = () => {
           {/* Edit Button */}
           <button
             onClick={handleOpenEdit}
-            className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-accent hover:text-white dark:bg-slate-900/50 dark:hover:bg-accent text-slate-700 dark:text-slate-200 text-xs font-bold shadow transition-all flex items-center justify-center space-x-1.5 self-center md:self-auto"
+            className="px-5 py-3 rounded-2xl bg-cream hover:bg-accent hover:text-white dark:bg-darkbg/50 dark:hover:bg-accent text-slate-700 dark:text-slate-200 text-xs font-bold shadow transition-all flex items-center justify-center space-x-1.5 self-center md:self-auto"
           >
             <FiEdit2 className="w-4 h-4" />
             <span>Edit Profile</span>
@@ -192,8 +192,8 @@ export const ClientProfilePage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* Core Profile Info */}
-        <div className="glass-card border border-slate-200/50 dark:border-slate-800/50 p-6 rounded-3xl space-y-6">
-          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
+        <div className="glass-card border border-rosegold/20 dark:border-goldAccent/15 p-6 rounded-3xl space-y-6">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-rosegold/10 dark:border-goldAccent/10 pb-2">
             Personal Information
           </h3>
 
@@ -201,7 +201,7 @@ export const ClientProfilePage = () => {
             
             {/* Email */}
             <div className="flex items-start space-x-3.5">
-              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-accent">
+              <div className="p-2 rounded-xl bg-cream/50 dark:bg-darkbg text-accent">
                 <FiMail className="w-4.5 h-4.5" />
               </div>
               <div>
@@ -212,7 +212,7 @@ export const ClientProfilePage = () => {
 
             {/* Phone */}
             <div className="flex items-start space-x-3.5">
-              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-accent">
+              <div className="p-2 rounded-xl bg-cream/50 dark:bg-darkbg text-accent">
                 <FiPhone className="w-4.5 h-4.5" />
               </div>
               <div>
@@ -223,7 +223,7 @@ export const ClientProfilePage = () => {
 
             {/* Address */}
             <div className="flex items-start space-x-3.5">
-              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-accent">
+              <div className="p-2 rounded-xl bg-cream/50 dark:bg-darkbg text-accent">
                 <FiMapPin className="w-4.5 h-4.5" />
               </div>
               <div>
@@ -236,7 +236,7 @@ export const ClientProfilePage = () => {
 
             {/* Created At */}
             <div className="flex items-start space-x-3.5">
-              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-accent">
+              <div className="p-2 rounded-xl bg-cream/50 dark:bg-darkbg text-accent">
                 <FiInfo className="w-4.5 h-4.5" />
               </div>
               <div>
@@ -252,8 +252,8 @@ export const ClientProfilePage = () => {
         </div>
 
         {/* Wedding Preferences */}
-        <div className="glass-card border border-slate-200/50 dark:border-slate-800/50 p-6 rounded-3xl space-y-6">
-          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
+        <div className="glass-card border border-rosegold/20 dark:border-goldAccent/15 p-6 rounded-3xl space-y-6">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-rosegold/10 dark:border-goldAccent/10 pb-2">
             Wedding Configuration
           </h3>
 
@@ -261,7 +261,7 @@ export const ClientProfilePage = () => {
             
             {/* Partner Name */}
             <div className="flex items-start space-x-3.5">
-              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-accent">
+              <div className="p-2 rounded-xl bg-cream/50 dark:bg-darkbg text-accent">
                 <FiUser className="w-4.5 h-4.5" />
               </div>
               <div>
@@ -274,7 +274,7 @@ export const ClientProfilePage = () => {
 
             {/* Wedding Date */}
             <div className="flex items-start space-x-3.5">
-              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-accent">
+              <div className="p-2 rounded-xl bg-cream/50 dark:bg-darkbg text-accent">
                 <FiCalendar className="w-4.5 h-4.5" />
               </div>
               <div>
@@ -287,7 +287,7 @@ export const ClientProfilePage = () => {
 
             {/* Location */}
             <div className="flex items-start space-x-3.5">
-              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-accent">
+              <div className="p-2 rounded-xl bg-cream/50 dark:bg-darkbg text-accent">
                 <FiMapPin className="w-4.5 h-4.5" />
               </div>
               <div>
@@ -300,7 +300,7 @@ export const ClientProfilePage = () => {
 
             {/* Budget */}
             <div className="flex items-start space-x-3.5">
-              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-accent">
+              <div className="p-2 rounded-xl bg-cream/50 dark:bg-darkbg text-accent">
                 <FiDollarSign className="w-4.5 h-4.5" />
               </div>
               <div>
@@ -336,7 +336,7 @@ export const ClientProfilePage = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card w-full max-w-lg p-6 sm:p-8 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto"
+              className="glass-card w-full max-w-lg p-6 sm:p-8 rounded-3xl border border-rosegold/20 dark:border-goldAccent/15 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto"
             >
               
               <div className="flex justify-between items-center mb-6">
@@ -348,7 +348,7 @@ export const ClientProfilePage = () => {
                 </div>
                 <button
                   onClick={() => setIsEditOpen(false)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                  className="p-1.5 rounded-full hover:bg-cream dark:hover:bg-darkbg/50 text-slate-400"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
@@ -364,7 +364,7 @@ export const ClientProfilePage = () => {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
@@ -376,7 +376,7 @@ export const ClientProfilePage = () => {
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
@@ -387,7 +387,7 @@ export const ClientProfilePage = () => {
                     type="text"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
@@ -398,7 +398,7 @@ export const ClientProfilePage = () => {
                     type="text"
                     value={formData.profilePhoto}
                     onChange={(e) => setFormData({ ...formData, profilePhoto: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white text-[11px]"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white text-[11px]"
                   />
                 </div>
 
@@ -411,7 +411,7 @@ export const ClientProfilePage = () => {
                     type="text"
                     value={formData.EventIdName}
                     onChange={(e) => setFormData({ ...formData, EventIdName: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                     placeholder="Sarah & David's Royal Wedding"
                   />
                 </div>
@@ -423,7 +423,7 @@ export const ClientProfilePage = () => {
                     type="text"
                     value={formData.partnerName}
                     onChange={(e) => setFormData({ ...formData, partnerName: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
@@ -434,7 +434,7 @@ export const ClientProfilePage = () => {
                     type="date"
                     value={formData.weddingDate}
                     onChange={(e) => setFormData({ ...formData, weddingDate: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
@@ -445,7 +445,7 @@ export const ClientProfilePage = () => {
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
@@ -456,7 +456,7 @@ export const ClientProfilePage = () => {
                     type="number"
                     value={formData.budget}
                     onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 

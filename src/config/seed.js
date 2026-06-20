@@ -62,6 +62,20 @@ const seedData = async () => {
 
         console.log("Client created successfully.");
 
+        const adminSalt = await bcrypt.genSalt(10);
+        const adminHashedPassword = await bcrypt.hash("adminSecretPassword", adminSalt);
+
+        // Create a Seed Super Admin
+        const adminUser = await User.create({
+            name: "Super Admin",
+            email: "admin@vendornet.com",
+            phoneNo: "9999999999",
+            password: adminHashedPassword,
+            role: "superadmin"
+        });
+
+        console.log("Super Admin created successfully.");
+
         // 2. Create Planners
         const plannersData = [
             {

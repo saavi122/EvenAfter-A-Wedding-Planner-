@@ -1,6 +1,7 @@
 import PlannerRequest from "../models/plannerRequest.models.js";
 import Client from "../models/client.models.js";
 import Planner from "../models/planner.models.js";
+import WeddingEvent from "../models/weddingEvent.models.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -119,6 +120,36 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
         // Also update planner assignedEvents count if we want, or do some hooks
         plannerProfile.assignedEvents = (parseInt(plannerProfile.assignedEvents || 0) + 1).toString();
         await plannerProfile.save();
+
+        // Create wedding event automatically
+        const clientProfile = await Client.findById(plannerRequest.clientId).populate("name");
+        if (clientProfile) {
+            let weddingEvent = await WeddingEvent.findOne({ clientId: clientProfile._id });
+            const titleVal = clientProfile.name?.name ? `${clientProfile.name.name}'s Wedding` : "My Wedding";
+            if (!weddingEvent) {
+                weddingEvent = await WeddingEvent.create({
+                    clientId: clientProfile._id,
+                    plannerId: plannerProfile._id,
+                    title: titleVal,
+                    date: plannerRequest.weddingDate || clientProfile.weddingDate || new Date(),
+                    venue: clientProfile.venue || plannerRequest.location || 'Umaid Bhawan Palace, Jodhpur',
+                    budget: plannerRequest.budget || clientProfile.budget || 2000000,
+                    status: 'Planning',
+                    timeline: [
+                        { title: 'Venue Selection', description: 'Confirm hotel venue booking', date: new Date(), status: 'In Progress' },
+                        { title: 'Invitations', description: 'Design and send out wedding cards', date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), status: 'Pending' }
+                    ],
+                    budgetItems: [
+                        { category: 'Venue', allocated: (plannerRequest.budget || 2000000) * 0.4, spent: 0, status: 'Allocated' },
+                        { category: 'Floral & Decor', allocated: (plannerRequest.budget || 2000000) * 0.3, spent: 0, status: 'Allocated' },
+                        { category: 'Catering', allocated: (plannerRequest.budget || 2000000) * 0.3, spent: 0, status: 'Allocated' }
+                    ]
+                });
+            } else {
+                weddingEvent.plannerId = plannerProfile._id;
+                await weddingEvent.save();
+            }
+        }
     }
 
     return res.status(200).json(

@@ -17,6 +17,8 @@ export default {
         goldAccent: '#D4AF37',
         darkbg: '#121212',
         darkcard: '#1E1E1E',
+        accent: '#C9A27E',
+        primary: '#D8C3A5',
       },
       fontFamily: {
         playfair: ['"Playfair Display"', 'serif'],

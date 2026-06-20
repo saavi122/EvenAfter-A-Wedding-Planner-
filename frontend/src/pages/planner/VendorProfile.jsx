@@ -148,7 +148,7 @@ export const VendorProfile = () => {
       </AnimatePresence>
 
       {/* Cover and Profile Header */}
-      <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-[#0f172a]">
+      <div className="relative rounded-3xl overflow-hidden shadow-xl border border-rosegold/20 dark:border-goldAccent/15 bg-white dark:bg-darkcard">
         
         {/* Cover Image */}
         <div className="h-[220px] md:h-[300px] w-full relative">
@@ -167,7 +167,7 @@ export const VendorProfile = () => {
             <img
               src={vendor.vendorLogo}
               alt={vendor.businessName}
-              className="w-32 h-32 rounded-3xl object-cover border-4 border-white dark:border-[#0f172a] shadow-2xl relative z-10"
+              className="w-32 h-32 rounded-3xl object-cover border-4 border-white dark:border-darkcard shadow-2xl relative z-10"
             />
             <div className="space-y-1.5 z-10">
               <span className="text-[10px] font-bold text-accent bg-accent/15 px-3 py-1 rounded-full border border-accent/20">
@@ -197,21 +197,21 @@ export const VendorProfile = () => {
           <div className="flex flex-wrap items-center justify-center gap-3 z-10 md:-translate-y-2">
             <button
               onClick={() => navigate(`/planner/chat/${vendor.userId?._id || vendor.name?._id || vendor.userId}`)}
-              className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold transition-all bg-white dark:bg-slate-900 shadow flex items-center space-x-1.5"
+              className="px-5 py-3 rounded-2xl border border-rosegold/30 dark:border-goldAccent/25 text-xs font-extrabold transition-all bg-white dark:bg-darkbg text-slate-700 dark:text-slate-350 hover:text-accent dark:hover:text-goldAccent hover:bg-rosegold/5 dark:hover:bg-goldAccent/5 shadow flex items-center space-x-1.5"
             >
               <FiMessageSquare className="w-4.5 h-4.5" />
               <span>Chat Vendor</span>
             </button>
             <button
               onClick={() => shortlistMutation.mutate(vendor._id)}
-              className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold transition-all bg-white dark:bg-slate-900 shadow flex items-center space-x-1.5"
+              className="px-5 py-3 rounded-2xl border border-rosegold/30 dark:border-goldAccent/25 text-xs font-extrabold transition-all bg-white dark:bg-darkbg text-slate-700 dark:text-slate-350 hover:text-accent dark:hover:text-goldAccent hover:bg-rosegold/5 dark:hover:bg-goldAccent/5 shadow flex items-center space-x-1.5"
             >
               <FiHeart className="w-4.5 h-4.5" />
               <span>Shortlist</span>
             </button>
             <button
               onClick={() => setIsAssignOpen(true)}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-accent to-primary text-white font-bold text-xs shadow-lg hover:shadow-primary/20 hover:scale-[1.02] transition-all flex items-center space-x-1.5"
+              className="px-6 py-3 rounded-2xl bg-slate-900 dark:bg-gradient-to-r dark:from-accent dark:to-primary text-white dark:text-slate-950 font-extrabold text-xs shadow-lg hover:shadow-primary/20 hover:scale-[1.02] transition-all flex items-center space-x-1.5"
             >
               <FiBriefcase className="w-4.5 h-4.5" />
               <span>Assign Event</span>
@@ -229,12 +229,12 @@ export const VendorProfile = () => {
         <div className="lg:col-span-4 space-y-6">
           
           {/* Services & Offerings */}
-          <div className="glass-card border border-slate-200/50 dark:border-slate-800/50 p-6 rounded-3xl space-y-5">
+          <div className="glass-card border border-rosegold/20 dark:border-goldAccent/15 p-6 rounded-3xl space-y-5">
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-450 mb-3.5">Services Offered</h4>
               <div className="flex flex-wrap gap-2">
                 {vendor.servicesOffered?.map((s) => (
-                  <span key={s} className="text-[10px] font-bold px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 rounded-md border border-slate-200/10">
+                  <span key={s} className="text-[10px] font-bold px-2.5 py-1.5 bg-cream/40 dark:bg-darkbg rounded-md border border-rosegold/10 dark:border-goldAccent/10">
                     {s}
                   </span>
                 ))}
@@ -242,7 +242,7 @@ export const VendorProfile = () => {
             </div>
 
             {/* Performance metrics */}
-            <div className="border-t border-slate-200/40 dark:border-slate-800/40 pt-4 space-y-3.5 text-xs font-semibold text-slate-700 dark:text-slate-350">
+            <div className="border-t border-rosegold/10 dark:border-goldAccent/10 pt-4 space-y-3.5 text-xs font-semibold text-slate-700 dark:text-slate-350">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-450 mb-1">Service Metrics</h4>
               <div className="flex justify-between">
                 <span className="flex items-center text-slate-500"><FiClock className="mr-1.5 text-accent" /> Response Time</span>
@@ -260,14 +260,14 @@ export const VendorProfile = () => {
           </div>
 
           {/* Contact Details & Availability Calendar */}
-          <div className="glass-card border border-slate-200/50 dark:border-slate-800/50 p-6 rounded-3xl space-y-4">
+          <div className="glass-card border border-rosegold/20 dark:border-goldAccent/15 p-6 rounded-3xl space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-450 mb-2">Availability Calendar</h4>
-            <div className="p-3 rounded-2xl bg-slate-100/40 dark:bg-slate-950/40 border border-slate-200/20 text-center text-xs">
+            <div className="p-3 rounded-2xl bg-cream/40 dark:bg-darkbg/40 border border-rosegold/10 dark:border-goldAccent/10 text-center text-xs">
               <span className="font-bold text-emerald-500">Currently Open for Bookings</span>
               <p className="text-[10px] text-slate-500 mt-1">Accepting inquiries for winter weddings 2026</p>
             </div>
 
-            <div className="border-t border-slate-200/40 dark:border-slate-800/40 pt-4 space-y-3">
+            <div className="border-t border-rosegold/10 dark:border-goldAccent/10 pt-4 space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-450 mb-2">Contact Details</h4>
               <div className="flex items-center space-x-3 text-xs text-slate-650 dark:text-slate-300">
                 <FiMail className="text-accent w-4 h-4 flex-shrink-0" />
@@ -286,7 +286,7 @@ export const VendorProfile = () => {
         <div className="lg:col-span-8 space-y-6">
           
           {/* Tab buttons */}
-          <div className="flex space-x-2 p-1 bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl backdrop-blur-md">
+          <div className="flex space-x-2 p-1 bg-white/50 dark:bg-darkcard/50 border border-rosegold/20 dark:border-goldAccent/15 rounded-2xl backdrop-blur-md">
             {[
               { id: 'portfolio', label: 'Pinterest Portfolio' },
               { id: 'events', label: 'Wedding History' },
@@ -320,7 +320,7 @@ export const VendorProfile = () => {
                       <div
                         key={index}
                         onClick={() => setActiveLightbox({ url: img })}
-                        className="break-inside-avoid relative rounded-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50 shadow-md cursor-pointer group"
+                        className="break-inside-avoid relative rounded-2xl overflow-hidden border border-rosegold/20 dark:border-goldAccent/15 shadow-md cursor-pointer group"
                       >
                         <img
                           src={img}
@@ -336,7 +336,7 @@ export const VendorProfile = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-10 text-slate-400 glass rounded-3xl border border-slate-200/50 dark:border-slate-800/50">
+                  <div className="text-center py-10 text-slate-400 glass rounded-3xl border border-rosegold/20 dark:border-goldAccent/15">
                     <p className="text-xs">No gallery images uploaded yet.</p>
                   </div>
                 )}
@@ -459,7 +459,7 @@ export const VendorProfile = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-2xl relative z-10 overflow-hidden text-xs font-semibold text-slate-700 dark:text-slate-350"
+              className="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl border border-rosegold/20 dark:border-goldAccent/15 shadow-2xl relative z-10 overflow-hidden text-xs font-semibold text-slate-700 dark:text-slate-350"
             >
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -468,7 +468,7 @@ export const VendorProfile = () => {
                   </h3>
                   <p className="text-[10px] text-slate-500 mt-1">Propose job assignment to {vendor.businessName}</p>
                 </div>
-                <button onClick={() => setIsAssignOpen(false)} className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+                <button onClick={() => setIsAssignOpen(false)} className="p-1.5 rounded-full hover:bg-cream dark:hover:bg-darkbg/50 text-slate-400">
                   <FiX className="w-5 h-5" />
                 </button>
               </div>
@@ -479,15 +479,26 @@ export const VendorProfile = () => {
                   <select
                     required
                     value={assignForm.weddingId}
-                    onChange={(e) => setAssignForm({ ...assignForm, weddingId: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    onChange={(e) => {
+                      const wId = e.target.value;
+                      const selectedW = activeClients.find(c => (c.clientId?._id || c.clientId) === wId);
+                      const wDate = selectedW?.weddingDate ? new Date(selectedW.weddingDate).toISOString().split('T')[0] : '';
+                      setAssignForm({
+                        ...assignForm,
+                        weddingId: wId,
+                        date: wDate
+                      });
+                    }}
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   >
                     <option value="">Select Wedding Event...</option>
-                    {activeClients.map(c => (
-                      <option key={c._id} value={c.clientId?._id || c.clientId}>
-                        {c.clientId?.name?.name}'s Wedding ({c.weddingType})
-                      </option>
-                    ))}
+                    {activeClients
+                      .filter(c => c.location?.toLowerCase().trim() === vendor?.location?.toLowerCase().trim())
+                      .map(c => (
+                        <option key={c._id} value={c.clientId?._id || c.clientId}>
+                          {c.clientId?.name?.name}'s Wedding ({c.weddingType})
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div>
@@ -498,7 +509,7 @@ export const VendorProfile = () => {
                     value={assignForm.role}
                     onChange={(e) => setAssignForm({ ...assignForm, role: e.target.value })}
                     placeholder="e.g. Floral Mandap, Food Catering..."
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
                 <div>
@@ -509,7 +520,7 @@ export const VendorProfile = () => {
                     value={assignForm.budget}
                     onChange={(e) => setAssignForm({ ...assignForm, budget: e.target.value })}
                     placeholder="e.g. 500000"
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
                 <div>
@@ -519,14 +530,14 @@ export const VendorProfile = () => {
                     required
                     value={assignForm.date}
                     onChange={(e) => setAssignForm({ ...assignForm, date: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-2xl bg-cream/10 dark:bg-darkbg/50 border border-rosegold/20 dark:border-goldAccent/15 outline-none text-slate-900 dark:text-white"
                   />
                 </div>
 
                 <motion.button
                   type="submit"
                   disabled={assignMutation.isPending}
-                  className="w-full py-3.5 bg-gradient-to-r from-accent to-primary text-white font-bold text-xs rounded-2xl shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center"
+                  className="w-full py-3.5 bg-slate-900 dark:bg-gradient-to-r dark:from-accent dark:to-primary text-white dark:text-slate-950 font-extrabold text-xs rounded-2xl shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >

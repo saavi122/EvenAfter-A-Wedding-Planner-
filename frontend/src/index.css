@@ -26,6 +26,16 @@
   border: 1px solid rgba(212, 175, 55, 0.15);
 }
 
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+}
+
+.dark .glass-card {
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(16px);
+}
+
 /* Custom utility for spin speed */
 .animate-spin-slow {
   animation: spin 8s linear infinite;

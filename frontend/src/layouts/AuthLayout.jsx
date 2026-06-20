@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import FlowerOverlay from "../components/FlowerOverlay";
 import ThemeToggle from "../components/ThemeToggle";
+import logoImage from "../assets/logo.png";
 
 const AuthLayout = ({ children, title, subtitle }) => {
   return (
@@ -20,6 +21,16 @@ const AuthLayout = ({ children, title, subtitle }) => {
       {/* Flower sway garlands and falling petals */}
       <FlowerOverlay />
 
+      {/* Top Left Back to Home button */}
+      <div className="absolute top-6 left-6 z-30">
+        <Link 
+          to="/" 
+          className="flex items-center space-x-2 px-4 py-2 rounded-full border border-rosegold/30 dark:border-goldAccent/30 bg-white/40 dark:bg-black/30 backdrop-blur-md text-xs font-semibold text-darktext dark:text-goldAccent hover:bg-rosegold/10 hover:scale-[1.03] transition-all duration-300 shadow-sm"
+        >
+          <span>← Back to Home</span>
+        </Link>
+      </div>
+
       {/* Top Header bar with Theme Toggle */}
       <div className="absolute top-6 right-6 z-30">
         <ThemeToggle />
@@ -31,11 +42,14 @@ const AuthLayout = ({ children, title, subtitle }) => {
         <div className="flex flex-col items-center mb-6 text-center">
           <Link
             to="/"
-            className="font-playfair text-3xl md:text-4xl font-bold tracking-widest text-darktext dark:text-goldAccent hover:opacity-90 transition-opacity duration-300"
+            className="flex flex-col items-center group mb-2"
           >
-            EvenAfter
+            <img src={logoImage} alt="EvenAfter Logo" className="w-16 h-16 rounded-2xl object-cover shadow-lg mb-3 transition-transform group-hover:scale-105" />
+            <span className="font-playfair text-3xl md:text-4xl font-bold tracking-widest text-darktext dark:text-goldAccent">
+              EvenAfter
+            </span>
           </Link>
-          <p className="text-darktext/75 dark:text-gray-400 mt-2 text-xs md:text-sm font-light tracking-wider uppercase">
+          <p className="text-darktext/75 dark:text-gray-400 mt-1 text-xs md:text-sm font-light tracking-wider uppercase">
             Luxury Event Curation & Management
           </p>
         </div>

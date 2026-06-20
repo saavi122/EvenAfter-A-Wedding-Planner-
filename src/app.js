@@ -12,6 +12,12 @@ import plannerRequestRouter from './routes/plannerRequest.routes.js';
 import chatRouter from './routes/chat.routes.js';
 import vendorRouter from './routes/vendor.routes.js';
 import vendorAssignmentRouter from './routes/vendorAssignment.routes.js';
+import eventRouter from './routes/event.routes.js';
+import taskRouter from './routes/task.routes.js';
+import timelineRouter from './routes/timeline.routes.js';
+import documentRouter from './routes/document.routes.js';
+import notificationRouter from './routes/notification.routes.js';
+import adminRouter from './routes/admin.routes.js';
 
 const app = express();
 
@@ -33,6 +39,12 @@ app.use("/api/planner-requests", plannerRequestRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/vendors", vendorRouter);
 app.use("/api/vendor-assignments", vendorAssignmentRouter);
+app.use("/api/events", eventRouter);
+app.use("/api/tasks", taskRouter);
+app.use("/api/timelines", timelineRouter);
+app.use("/api/documents", documentRouter);
+app.use("/api/notifications", notificationRouter);
+app.use("/api/admin", adminRouter);
 
 // Global Error Handler
 app.use(errorMiddleware);

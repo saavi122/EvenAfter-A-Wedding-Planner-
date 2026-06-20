@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiGrid, FiLogOut, FiChevronLeft, FiChevronRight, FiMessageSquare } from 'react-icons/fi';
+import { FiMenu, FiGrid, FiUsers, FiUser, FiLogOut, FiChevronLeft, FiChevronRight, FiMessageSquare, FiShield, FiFileText, FiList } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import logoImage from '../assets/logo.png';
 
-export const VendorSidebar = ({ mobileOpen, setMobileOpen }) => {
+export const AdminSidebar = ({ mobileOpen, setMobileOpen }) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   // Desktop collapsed state
   const [isCollapsed, setIsCollapsed] = useState(() => {
-    const saved = localStorage.getItem('vendor-sidebar-collapsed');
+    const saved = localStorage.getItem('admin-sidebar-collapsed');
     return saved === 'true';
   });
 
   useEffect(() => {
-    localStorage.setItem('vendor-sidebar-collapsed', isCollapsed);
+    localStorage.setItem('admin-sidebar-collapsed', isCollapsed);
   }, [isCollapsed]);
 
   const handleLogout = async () => {
@@ -25,8 +25,7 @@ export const VendorSidebar = ({ mobileOpen, setMobileOpen }) => {
   };
 
   const menuItems = [
-    { name: 'Dashboard', path: '/vendor/dashboard', icon: FiGrid },
-    { name: 'Direct Chat', path: '/vendor/chat/list', icon: FiMessageSquare },
+    { name: 'Dashboard', path: '/admin/dashboard', icon: FiGrid },
   ];
 
   const sidebarVariants = {
@@ -90,7 +89,7 @@ export const VendorSidebar = ({ mobileOpen, setMobileOpen }) => {
           <NavLink
             key={item.name}
             to={item.path}
-            end={item.path === '/vendor/dashboard'}
+            end={item.path === '/admin/dashboard'}
             className={({ isActive }) =>
               `flex items-center space-x-3 px-3 py-3 rounded-xl text-sm font-medium tracking-wide transition-all duration-300 group relative ${
                 isActive
@@ -185,4 +184,4 @@ export const VendorSidebar = ({ mobileOpen, setMobileOpen }) => {
   );
 };
 
-export default VendorSidebar;
+export default AdminSidebar;

@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiStar, FiMapPin, FiCalendar, FiMessageSquare, FiBriefcase, FiUserCheck, FiSearch, FiSliders, FiClock, FiX, FiCheck } from 'react-icons/fi';
+import { 
+  FiStar, FiMapPin, FiCalendar, FiMessageSquare, FiBriefcase, 
+  FiUserCheck, FiSearch, FiSliders, FiClock, FiX, FiCheck, FiImage 
+} from 'react-icons/fi';
+import { toast } from 'react-hot-toast';
 
 export const FindPlanners = () => {
   const navigate = useNavigate();
@@ -21,14 +25,6 @@ export const FindPlanners = () => {
   // Form states
   const [meetingForm, setMeetingForm] = useState({ date: '', time: '', agenda: '', meetingType: 'Google Meet' });
   const [hireForm, setHireForm] = useState({ weddingType: 'Luxury Wedding', weddingDate: '', location: '', budget: '', requirements: '' });
-
-  // Toast notification state
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type }), 4000);
-  };
 
   // 1. Fetch Planners from API
   const { data: plannersResponse, isLoading, error } = useQuery({
@@ -54,14 +50,14 @@ export const FindPlanners = () => {
       if (!res.ok || !result.success) throw new Error(result.message || 'Failed to book meeting');
       return result;
     },
-    onSuccess: (data) => {
-      showToast("Meeting scheduled successfully! Planner notified.", "success");
+    onSuccess: () => {
+      toast.success("Consultation meeting scheduled! Coordinator notified.");
       setIsMeetingOpen(false);
       setMeetingForm({ date: '', time: '', agenda: '', meetingType: 'Google Meet' });
       queryClient.invalidateQueries({ queryKey: ['myPlanner'] });
     },
     onError: (err) => {
-      showToast(err.message || "Error scheduling meeting", "error");
+      toast.error(err.message || "Error scheduling meeting");
     }
   });
 
@@ -78,17 +74,17 @@ export const FindPlanners = () => {
       return result;
     },
     onSuccess: () => {
-      showToast("Hiring proposal sent! You can track status in your dashboard.", "success");
+      toast.success("Hiring proposal sent! Plan details registered.");
       setIsHireOpen(false);
       setHireForm({ weddingType: 'Luxury Wedding', weddingDate: '', location: '', budget: '', requirements: '' });
       queryClient.invalidateQueries({ queryKey: ['plannerRequests'] });
     },
     onError: (err) => {
-      showToast(err.message || "Error sending proposal", "error");
+      toast.error(err.message || "Error sending proposal");
     }
   });
 
-  // Extract cities and specializations for filter dropdowns
+  // Extract cities and specializations
   const cities = ['All', ...new Set(planners.map(p => p.city).filter(Boolean))];
   const specializations = [
     'All',
@@ -123,41 +119,31 @@ export const FindPlanners = () => {
     hirePlannerMutation.mutate(hireForm);
   };
 
-  return (
-    <div className="space-y-8 pb-16">
-      
-      {/* Toast Alert */}
-      <AnimatePresence>
-        {toast.show && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-4 right-4 z-50 flex items-center space-x-3 px-5 py-3 rounded-2xl shadow-xl text-white text-xs font-bold border ${
-              toast.type === 'success' 
-                ? 'bg-emerald-600 border-emerald-500 shadow-emerald-500/25' 
-                : 'bg-rose-600 border-rose-500 shadow-rose-500/25'
-            }`}
-          >
-            {toast.type === 'success' ? <FiCheck className="w-5 h-5" /> : <FiX className="w-5 h-5" />}
-            <span>{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+  // Pinterest-style placeholder previews if empty
+  const defaultPortfolio = [
+    "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=150",
+    "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=150",
+    "https://images.unsplash.com/photo-1546708973-b339540b5162?q=80&w=150"
+  ];
 
-      {/* Header and intro */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center uppercase tracking-tight">
-            <span className="w-3.5 h-3.5 rounded-full bg-accent mr-3" />
-            Find Wedding Planners
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">Connect with premium designers, organizers, and wedding coordinators</p>
-        </div>
+  return (
+    <div className="space-y-8 pb-16 font-roboto">
+      
+      {/* Page Header */}
+      <div>
+        <span className="text-[10px] font-bold tracking-widest text-rosegold dark:text-goldAccent uppercase block mb-1">
+          Registry Collection
+        </span>
+        <h2 className="text-3xl font-playfair font-semibold text-darktext dark:text-white tracking-wide">
+          Explore Wedding Curators
+        </h2>
+        <p className="text-xs text-darktext/60 dark:text-gray-400 mt-1 max-w-xl font-light">
+          Immerse yourself in our premium catalog of verified destination coordinators, traditional banqueting experts, and floral stylists.
+        </p>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white/50 dark:bg-[#0f172a]/40 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md shadow-sm">
+      {/* Elegant Search & Filter Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-cream/35 dark:bg-darkcard/40 p-4 rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 backdrop-blur-md shadow-sm">
         
         {/* Search */}
         <div className="md:col-span-6 relative">
@@ -166,9 +152,9 @@ export const FindPlanners = () => {
             placeholder="Search by planner name, specialty, company..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 text-sm outline-none transition-all focus:border-accent"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/70 dark:bg-black/20 border border-rosegold/20 dark:border-goldAccent/20 text-xs outline-none transition-all focus:border-rosegold dark:focus:border-goldAccent text-darktext dark:text-white"
           />
-          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-450 dark:text-slate-500 w-4.5 h-4.5" />
+          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-rosegold dark:text-goldAccent/70 w-4 h-4" />
         </div>
 
         {/* City Filter */}
@@ -176,7 +162,7 @@ export const FindPlanners = () => {
           <select
             value={cityFilter}
             onChange={(e) => setCityFilter(e.target.value)}
-            className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 text-sm outline-none focus:border-accent capitalize"
+            className="w-full px-4 py-2.5 rounded-xl bg-white/70 dark:bg-black/20 border border-rosegold/20 dark:border-goldAccent/20 text-xs outline-none focus:border-rosegold dark:focus:border-goldAccent text-darktext dark:text-white capitalize"
           >
             <option value="All">All Locations</option>
             {cities.filter(c => c !== 'All').map(city => (
@@ -190,7 +176,7 @@ export const FindPlanners = () => {
           <select
             value={specialFilter}
             onChange={(e) => setSpecialFilter(e.target.value)}
-            className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 text-sm outline-none focus:border-accent"
+            className="w-full px-4 py-2.5 rounded-xl bg-white/70 dark:bg-black/20 border border-rosegold/20 dark:border-goldAccent/20 text-xs outline-none focus:border-rosegold dark:focus:border-goldAccent text-darktext dark:text-white"
           >
             <option value="All">All Specializations</option>
             {specializations.filter(s => s !== 'All').map(spec => (
@@ -201,14 +187,14 @@ export const FindPlanners = () => {
 
       </div>
 
-      {/* Loading Skeletons */}
+      {/* Loading view */}
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="rounded-[40px] border border-slate-250 dark:border-slate-800 p-6 space-y-4 animate-pulse bg-white dark:bg-[#0f172a]">
-              <div className="w-full aspect-[4/5] rounded-[30px] bg-slate-200 dark:bg-slate-800" />
-              <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3" />
-              <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
+            <div key={n} className="rounded-3xl border border-rosegold/10 dark:border-goldAccent/10 p-5 space-y-4 animate-pulse bg-cream/10 dark:bg-darkcard/20">
+              <div className="w-full aspect-[4/5] rounded-2xl bg-cream/40 dark:bg-black/20" />
+              <div className="h-4 bg-cream/40 dark:bg-black/20 rounded w-2/3" />
+              <div className="h-3 bg-cream/40 dark:bg-black/20 rounded w-1/2" />
             </div>
           ))}
         </div>
@@ -216,128 +202,150 @@ export const FindPlanners = () => {
 
       {/* Empty State */}
       {!isLoading && filteredPlanners.length === 0 && (
-        <div className="text-center py-16 glass rounded-3xl border border-slate-200/50 dark:border-slate-800/50">
-          <FiSliders className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <h3 className="text-base font-extrabold text-slate-850 dark:text-white">No planners match your filters</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Try broadening your search query or reset your city and specialization selections.</p>
+        <div className="text-center py-16 luxury-card rounded-3xl border border-rosegold/25 dark:border-goldAccent/25">
+          <FiSliders className="w-12 h-12 text-rosegold dark:text-goldAccent/75 mx-auto mb-4" />
+          <h3 className="text-base font-bold font-playfair text-darktext dark:text-white">No planners match your filters</h3>
+          <p className="text-xs text-darktext/60 dark:text-gray-400 mt-1 max-w-sm mx-auto font-light">Try broadening your search query or reset your city and specialization selections.</p>
           <button
             onClick={() => { setSearch(''); setCityFilter('All'); setSpecialFilter('All'); }}
-            className="mt-6 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-xs font-bold rounded-xl transition-all"
+            className="mt-6 px-6 py-2 bg-rosegold dark:bg-goldAccent text-white dark:text-black text-xs font-semibold uppercase tracking-wider rounded shadow-sm hover:opacity-90"
           >
             Reset Filters
           </button>
         </div>
       )}
 
-      {/* Grid of Planners */}
+      {/* Grid of Luxury Planner Catalog */}
       {!isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredPlanners.map((planner) => (
             <motion.div
               key={planner._id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="glass-card border border-slate-200/50 dark:border-slate-800/50 rounded-[40px] p-5 shadow-lg flex flex-col justify-between hover:shadow-xl hover:border-accent/35 transition-all duration-300 relative group"
+              className="luxury-card border border-rosegold/20 dark:border-goldAccent/15 rounded-3xl p-5 shadow-sm flex flex-col justify-between hover:border-rosegold/40 dark:hover:border-goldAccent/30 hover:scale-[1.01] transition-all duration-300 relative group"
             >
               
-              {/* Arched Photo Wrapper */}
-              <div className="relative w-full aspect-[4/5] rounded-[30px] rounded-t-[100px] overflow-hidden border border-slate-200/60 dark:border-slate-800/60 shadow-inner">
+              {/* Cover image & profile overlay */}
+              <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden border border-rosegold/10 dark:border-goldAccent/10 shadow-inner">
                 <img
-                  src={planner.profileImage || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256"}
-                  alt={planner.name?.name || "Planner"}
-                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                  src={planner.coverImage || "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=600"}
+                  alt="Wedding Event Cover"
+                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                 />
-                
-                {/* Overlay details */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent flex flex-col justify-end p-5">
-                  <span className="text-[10px] font-bold text-accent tracking-wider uppercase bg-white/90 backdrop-blur px-2.5 py-1 rounded-full self-start shadow border border-white/20 mb-3">
-                    {planner.specialiazation?.split('&')[0]}
-                  </span>
-                  
-                  <h3 className="text-lg font-black text-white leading-tight drop-shadow-sm">
-                    {planner.name?.name}
-                  </h3>
-                  
-                  <p className="text-xs text-slate-350 font-medium truncate mt-0.5">
-                    {planner.companyName}
-                  </p>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent flex flex-col justify-end p-5" />
+
+                {/* Profile photo overlapping catalog cover */}
+                <div className="absolute bottom-5 left-5 flex items-center space-x-3.5 z-10">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-rosegold/40 dark:border-goldAccent/45 bg-cream">
+                    <img
+                      src={planner.profileImage || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256"}
+                      alt={planner.name?.name || "Planner"}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white font-playfair leading-none">
+                      {planner.name?.name}
+                    </h3>
+                    <p className="text-[10px] text-gray-305 tracking-wider font-light mt-1 uppercase">
+                      {planner.companyName}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Rating badge */}
-                <div className="absolute top-4 right-4 flex items-center space-x-1 px-3 py-1 rounded-full bg-white/95 dark:bg-[#0f172a]/95 text-amber-500 font-extrabold text-[10px] shadow border border-slate-200/50 dark:border-slate-800/50">
-                  <FiStar className="fill-current w-3.5 h-3.5" />
-                  <span>{planner.ratings?.toFixed(1) || '5.0'}</span>
+                <div className="absolute top-4 right-4 flex items-center space-x-1 px-2.5 py-1 rounded bg-white/95 dark:bg-darkcard/95 text-amber-500 font-extrabold text-[9px] shadow border border-rosegold/20 dark:border-goldAccent/20">
+                  <FiStar className="fill-current w-3 h-3 text-goldAccent" />
+                  <span className="text-darktext dark:text-white font-bold">{planner.ratings?.toFixed(1) || '5.0'}</span>
                 </div>
 
                 {/* Availability Badge */}
-                <div className={`absolute top-4 left-4 flex items-center space-x-1 px-3 py-1 rounded-full text-white font-extrabold text-[9px] shadow ${
-                  planner.availabilityStatus === 'Available' ? 'bg-emerald-500/85' : 'bg-amber-500/85'
+                <div className={`absolute top-4 left-4 flex items-center space-x-1 px-2.5 py-1 rounded text-white font-bold text-[9px] shadow ${
+                  planner.availabilityStatus === 'Available' ? 'bg-emerald-600/90' : 'bg-amber-600/90'
                 }`}>
-                  <FiClock className="w-3.5 h-3.5" />
+                  <FiClock className="w-3 h-3" />
                   <span>{planner.availabilityStatus}</span>
                 </div>
               </div>
 
-              {/* Bio & Details */}
+              {/* Bio, Portfolio Previews, and Actions */}
               <div className="py-4 space-y-4 flex-1 flex flex-col justify-between">
                 
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-[10.5px] text-slate-500 font-semibold">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-[10px] text-darktext/60 dark:text-gray-400 font-semibold tracking-wider uppercase">
                     <span className="flex items-center">
-                      <FiMapPin className="mr-1 text-accent" />
+                      <FiMapPin className="mr-1 text-rosegold dark:text-goldAccent" />
                       {planner.city}
                     </span>
                     <span>{planner.exprience} Experience</span>
                   </div>
 
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 line-clamp-3 leading-relaxed italic">
-                    "{planner.bio}"
+                  <p className="text-[11px] text-darktext/75 dark:text-gray-400 line-clamp-2 leading-relaxed italic">
+                    "{planner.bio || "Crafting grand luxury celebrations bespoke to your fairytale style."}"
                   </p>
+
+                  {/* Portfolio Preview circles */}
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] uppercase tracking-widest text-rosegold dark:text-goldAccent block font-bold">Portfolio Previews</span>
+                    <div className="flex space-x-2">
+                      {(planner.portfolioPreview || defaultPortfolio).slice(0, 3).map((imgUrl, i) => (
+                        <div key={i} className="w-10 h-10 rounded-lg overflow-hidden border border-rosegold/20 dark:border-goldAccent/20">
+                          <img src={imgUrl} alt="past wedding preview" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Wedding Categories */}
+                <div className="flex flex-wrap gap-1 pb-1">
+                  {(planner.categoriesHandled || [planner.specialiazation?.split('&')[0] || 'Luxury Wedding']).map((cat, i) => (
+                    <span key={i} className="text-[8px] tracking-wider uppercase font-bold text-rosegold dark:text-goldAccent border border-rosegold/30 dark:border-goldAccent/30 bg-cream/10 px-2 py-0.5 rounded">
+                      {cat}
+                    </span>
+                  ))}
                 </div>
 
                 {/* Mini stats */}
-                <div className="flex justify-between items-center border-t border-b border-slate-200/40 dark:border-slate-800/40 py-2.5 text-[10px] font-bold text-slate-650 dark:text-slate-350">
+                <div className="flex justify-between items-center border-t border-rosegold/15 dark:border-goldAccent/10 pt-3 text-[10px] font-semibold text-darktext/75 dark:text-gray-400">
                   <span className="flex items-center">
-                    <FiBriefcase className="mr-1 text-accent" />
-                    {planner.assignedEvents} Weddings Handled
+                    <FiBriefcase className="mr-1 text-rosegold dark:text-goldAccent" />
+                    {planner.assignedEvents} weddings planned
                   </span>
                 </div>
 
                 {/* Grid Buttons */}
                 <div className="grid grid-cols-2 gap-2 text-center pt-2">
                   
-                  {/* View Profile */}
                   <button
                     onClick={() => navigate(`/client/planners/${planner._id}`)}
-                    className="py-2.5 border border-slate-200 hover:border-accent hover:text-accent dark:border-slate-800 text-[10px] font-bold rounded-xl transition-all"
+                    className="py-2 border border-rosegold/30 hover:border-rosegold dark:border-goldAccent/30 dark:hover:border-goldAccent hover:bg-rosegold/5 text-[9px] font-bold uppercase tracking-wider rounded transition-all text-darktext dark:text-gray-300"
                   >
                     View Profile
                   </button>
 
-                  {/* Schedule Meeting */}
                   <button
                     onClick={() => { setSelectedPlanner(planner); setIsMeetingOpen(true); }}
-                    className="py-2.5 border border-slate-200 hover:border-accent hover:text-accent dark:border-slate-800 text-[10px] font-bold rounded-xl transition-all"
+                    className="py-2 border border-rosegold/30 hover:border-rosegold dark:border-goldAccent/30 dark:hover:border-goldAccent hover:bg-rosegold/5 text-[9px] font-bold uppercase tracking-wider rounded transition-all text-darktext dark:text-gray-300"
                   >
                     Schedule Meeting
                   </button>
 
-                  {/* Direct Chat */}
                   <button
                     onClick={() => navigate(`/client/chat/${planner.name?._id || planner.userId?._id}`)}
-                    className="py-2.5 border border-slate-200 hover:border-accent hover:text-accent dark:border-slate-800 text-[10px] font-bold rounded-xl transition-all flex items-center justify-center space-x-1.5"
+                    className="py-2 border border-rosegold/30 hover:border-rosegold dark:border-goldAccent/30 dark:hover:border-goldAccent hover:bg-rosegold/5 text-[9px] font-bold uppercase tracking-wider rounded transition-all text-darktext dark:text-gray-300 flex items-center justify-center space-x-1"
                   >
-                    <FiMessageSquare className="w-3.5 h-3.5" />
-                    <span>Send Message</span>
+                    <FiMessageSquare className="w-3 h-3 text-rosegold dark:text-goldAccent" />
+                    <span>Chat</span>
                   </button>
 
-                  {/* Hire Planner */}
                   <button
                     onClick={() => { setSelectedPlanner(planner); setIsHireOpen(true); }}
-                    className="py-2.5 bg-gradient-to-r from-accent/90 to-primary/90 text-white hover:scale-[1.02] text-[10px] font-bold rounded-xl transition-all shadow-md flex items-center justify-center space-x-1.5"
+                    className="py-2 bg-rosegold dark:bg-goldAccent text-white dark:text-black text-[9px] font-bold uppercase tracking-wider rounded transition-all hover:scale-[1.01] flex items-center justify-center space-x-1"
                   >
-                    <FiUserCheck className="w-3.5 h-3.5" />
+                    <FiUserCheck className="w-3 h-3" />
                     <span>Hire Planner</span>
                   </button>
 
@@ -355,7 +363,6 @@ export const FindPlanners = () => {
         {isMeetingOpen && selectedPlanner && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -364,62 +371,58 @@ export const FindPlanners = () => {
               className="fixed inset-0 bg-black"
             />
             
-            {/* Modal Box */}
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-2xl relative z-10 overflow-hidden"
+              className="bg-white dark:bg-darkcard w-full max-w-md p-6 sm:p-8 rounded-3xl border border-rosegold/25 dark:border-goldAccent/25 shadow-2xl relative z-10 overflow-hidden"
             >
               
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">
+                  <h3 className="text-base font-bold font-playfair text-darktext dark:text-white uppercase tracking-wider">
                     Schedule Video Meeting
                   </h3>
-                  <p className="text-[10px] text-slate-500 mt-1">Book a consultation with {selectedPlanner.name?.name}</p>
+                  <p className="text-[10px] text-darktext/60 dark:text-gray-400 mt-1">Book a consultation with {selectedPlanner.name?.name}</p>
                 </div>
                 <button
                   onClick={() => setIsMeetingOpen(false)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                  className="p-1.5 rounded-full hover:bg-cream dark:hover:bg-darkbg text-rosegold dark:text-goldAccent"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleMeetingSubmit} className="space-y-4 text-xs font-semibold text-slate-700 dark:text-slate-350">
+              <form onSubmit={handleMeetingSubmit} className="space-y-4 text-xs font-semibold text-darktext dark:text-gray-300">
                 
-                {/* Date */}
                 <div>
-                  <label className="block mb-1.5 uppercase font-bold text-[10px] tracking-wider text-slate-500">Meeting Date</label>
+                  <label className="block mb-1.5 uppercase font-bold text-[9px] tracking-widest text-darktext/70 dark:text-gray-450">Meeting Date</label>
                   <input
                     type="date"
                     required
                     value={meetingForm.date}
                     onChange={(e) => setMeetingForm({ ...meetingForm, date: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-cream/20 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/20 outline-none text-darktext dark:text-white"
                   />
                 </div>
 
-                {/* Time */}
                 <div>
-                  <label className="block mb-1.5 uppercase font-bold text-[10px] tracking-wider text-slate-500">Meeting Time</label>
+                  <label className="block mb-1.5 uppercase font-bold text-[9px] tracking-widest text-darktext/70 dark:text-gray-450">Meeting Time</label>
                   <input
                     type="time"
                     required
                     value={meetingForm.time}
                     onChange={(e) => setMeetingForm({ ...meetingForm, time: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-cream/20 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/20 outline-none text-darktext dark:text-white"
                   />
                 </div>
 
-                {/* Meeting Type */}
                 <div>
-                  <label className="block mb-1.5 uppercase font-bold text-[10px] tracking-wider text-slate-500">Meeting Platform</label>
+                  <label className="block mb-1.5 uppercase font-bold text-[9px] tracking-widest text-darktext/70 dark:text-gray-450">Meeting Platform</label>
                   <select
                     value={meetingForm.meetingType}
                     onChange={(e) => setMeetingForm({ ...meetingForm, meetingType: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-cream/20 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/20 outline-none text-darktext dark:text-white"
                   >
                     <option value="Google Meet">Google Meet</option>
                     <option value="Zoom">Zoom</option>
@@ -427,25 +430,24 @@ export const FindPlanners = () => {
                   </select>
                 </div>
 
-                {/* Agenda */}
                 <div>
-                  <label className="block mb-1.5 uppercase font-bold text-[10px] tracking-wider text-slate-500">Agenda / Discussion details</label>
+                  <label className="block mb-1.5 uppercase font-bold text-[9px] tracking-widest text-darktext/70 dark:text-gray-450">Agenda</label>
                   <textarea
                     required
                     rows="3"
-                    placeholder="e.g. Budget alignment, venue ideas, floral layout..."
+                    placeholder="e.g. Budget alignment, venue ideas..."
                     value={meetingForm.agenda}
                     onChange={(e) => setMeetingForm({ ...meetingForm, agenda: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-cream/20 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/20 outline-none text-darktext dark:text-white resize-none"
                   />
                 </div>
 
                 <motion.button
                   type="submit"
                   disabled={scheduleMeetingMutation.isPending}
-                  className="w-full py-3.5 bg-gradient-to-r from-accent to-primary text-white font-bold text-xs rounded-2xl shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center space-x-2"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-3 bg-rosegold dark:bg-goldAccent text-white dark:text-black font-semibold text-xs uppercase tracking-widest rounded shadow hover:opacity-95"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                 >
                   <span>{scheduleMeetingMutation.isPending ? 'Booking Meeting...' : 'Book Video Consultation'}</span>
                 </motion.button>
@@ -462,7 +464,6 @@ export const FindPlanners = () => {
         {isHireOpen && selectedPlanner && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -471,38 +472,36 @@ export const FindPlanners = () => {
               className="fixed inset-0 bg-black"
             />
 
-            {/* Modal Box */}
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-2xl relative z-10 overflow-hidden"
+              className="bg-white dark:bg-darkcard w-full max-w-md p-6 sm:p-8 rounded-3xl border border-rosegold/25 dark:border-goldAccent/25 shadow-2xl relative z-10 overflow-hidden"
             >
               
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">
+                  <h3 className="text-base font-bold font-playfair text-darktext dark:text-white uppercase tracking-wider">
                     Hire Wedding Planner
                   </h3>
-                  <p className="text-[10px] text-slate-500 mt-1">Submit proposal brief to {selectedPlanner.name?.name}</p>
+                  <p className="text-[10px] text-darktext/60 dark:text-gray-400 mt-1">Submit proposal brief to {selectedPlanner.name?.name}</p>
                 </div>
                 <button
                   onClick={() => setIsHireOpen(false)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                  className="p-1.5 rounded-full hover:bg-cream dark:hover:bg-darkbg text-rosegold dark:text-goldAccent"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleHireSubmit} className="space-y-4 text-xs font-semibold text-slate-700 dark:text-slate-350">
+              <form onSubmit={handleHireSubmit} className="space-y-4 text-xs font-semibold text-darktext dark:text-gray-300">
                 
-                {/* Wedding Type */}
                 <div>
-                  <label className="block mb-1.5 uppercase font-bold text-[10px] tracking-wider text-slate-500">Wedding Theme / Style</label>
+                  <label className="block mb-1.5 uppercase font-bold text-[9px] tracking-widest text-darktext/70 dark:text-gray-450">Wedding Style</label>
                   <select
                     value={hireForm.weddingType}
                     onChange={(e) => setHireForm({ ...hireForm, weddingType: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-cream/20 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/20 outline-none text-darktext dark:text-white"
                   >
                     <option value="Royal Wedding">Royal Palace Wedding</option>
                     <option value="Destination Wedding">Destination Wedding</option>
@@ -513,62 +512,58 @@ export const FindPlanners = () => {
                   </select>
                 </div>
 
-                {/* Wedding Date */}
                 <div>
-                  <label className="block mb-1.5 uppercase font-bold text-[10px] tracking-wider text-slate-500">Planned Wedding Date</label>
+                  <label className="block mb-1.5 uppercase font-bold text-[9px] tracking-widest text-darktext/70 dark:text-gray-450">Planned Wedding Date</label>
                   <input
                     type="date"
                     required
                     value={hireForm.weddingDate}
                     onChange={(e) => setHireForm({ ...hireForm, weddingDate: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-cream/20 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/20 outline-none text-darktext dark:text-white"
                   />
                 </div>
 
-                {/* Location */}
                 <div>
-                  <label className="block mb-1.5 uppercase font-bold text-[10px] tracking-wider text-slate-500">Wedding Destination / City</label>
+                  <label className="block mb-1.5 uppercase font-bold text-[9px] tracking-widest text-darktext/70 dark:text-gray-450">Wedding Destination</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Udaipur, Jodhpur, Goa, Bali..."
+                    placeholder="e.g. Udaipur, Goa..."
                     value={hireForm.location}
                     onChange={(e) => setHireForm({ ...hireForm, location: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-cream/20 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/20 outline-none text-darktext dark:text-white"
                   />
                 </div>
 
-                {/* Budget */}
                 <div>
-                  <label className="block mb-1.5 uppercase font-bold text-[10px] tracking-wider text-slate-500">Overall Budget (INR)</label>
+                  <label className="block mb-1.5 uppercase font-bold text-[9px] tracking-widest text-darktext/70 dark:text-gray-450">Budget (INR)</label>
                   <input
                     type="number"
                     required
                     placeholder="e.g. 5000000"
                     value={hireForm.budget}
                     onChange={(e) => setHireForm({ ...hireForm, budget: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-cream/20 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/20 outline-none text-darktext dark:text-white"
                   />
                 </div>
 
-                {/* Requirements */}
                 <div>
-                  <label className="block mb-1.5 uppercase font-bold text-[10px] tracking-wider text-slate-500">Special Requirements / Mandates</label>
+                  <label className="block mb-1.5 uppercase font-bold text-[9px] tracking-widest text-darktext/70 dark:text-gray-450">Mandates</label>
                   <textarea
                     rows="3"
-                    placeholder="Describe guest count estimate, decor color palette (e.g. rose gold theme), food preferences, timeline urgency..."
+                    placeholder="Describe guest count, mandates..."
                     value={hireForm.requirements}
                     onChange={(e) => setHireForm({ ...hireForm, requirements: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-slate-900 dark:text-white resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-cream/20 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/20 outline-none text-darktext dark:text-white resize-none"
                   />
                 </div>
 
                 <motion.button
                   type="submit"
                   disabled={hirePlannerMutation.isPending}
-                  className="w-full py-3.5 bg-gradient-to-r from-accent to-primary text-white font-bold text-xs rounded-2xl shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center space-x-2"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-3 bg-rosegold dark:bg-goldAccent text-white dark:text-black font-semibold text-xs uppercase tracking-widest rounded shadow hover:opacity-95"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                 >
                   <span>{hirePlannerMutation.isPending ? 'Sending Brief...' : 'Send Hiring Proposal'}</span>
                 </motion.button>

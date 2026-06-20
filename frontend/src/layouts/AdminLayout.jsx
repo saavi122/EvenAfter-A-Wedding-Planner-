@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { FiMenu } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
-import ClientSidebar from '../components/ClientSidebar';
+import AdminSidebar from '../components/AdminSidebar';
 import ThemeToggle from '../components/ThemeToggle';
 
-export const ClientLayout = () => {
+export const AdminLayout = () => {
   const { user, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [padLeft, setPadLeft] = useState('md:pl-[260px]');
@@ -14,7 +14,7 @@ export const ClientLayout = () => {
   // Watch local storage state for sidebar collapse to dynamically adjust layout padding
   useEffect(() => {
     const checkCollapse = () => {
-      const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+      const isCollapsed = localStorage.getItem('admin-sidebar-collapsed') === 'true';
       setPadLeft(isCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]');
     };
 
@@ -38,19 +38,19 @@ export const ClientLayout = () => {
         <div className="flex flex-col items-center space-y-4">
           <div className="w-12 h-12 border-4 border-rosegold/30 border-t-rosegold dark:border-goldAccent/30 dark:border-t-goldAccent rounded-full animate-spin"></div>
           <p className="font-playfair text-xs tracking-widest text-darktext/60 dark:text-gray-400 uppercase animate-pulse">
-            Loading Client Suite...
+            Loading Admin Suite...
           </p>
         </div>
       </div>
     );
   }
 
-  // Redirect to login if user not authenticated or not client
+  // Redirect to login if user not authenticated or not admin
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role !== 'client') {
+  if (user.role !== 'superadmin') {
     return <Navigate to="/" replace />;
   }
 
@@ -58,7 +58,7 @@ export const ClientLayout = () => {
     <div className="min-h-screen bg-ivory dark:bg-darkbg text-darktext dark:text-gray-305 transition-colors duration-300">
       
       {/* Sidebar Navigation */}
-      <ClientSidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <AdminSidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       {/* Main Content Area */}
       <div className={`transition-all duration-300 min-h-screen flex flex-col ${padLeft}`}>
@@ -91,7 +91,7 @@ export const ClientLayout = () => {
                 {user.name.charAt(0)}
               </div>
               <span className="text-xs font-semibold text-darktext dark:text-white font-playfair">
-                {user.name}
+                {user.name} (Admin)
               </span>
             </div>
           </div>
@@ -105,4 +105,5 @@ export const ClientLayout = () => {
     </div>
   );
 };
-export default ClientLayout;
+
+export default AdminLayout;

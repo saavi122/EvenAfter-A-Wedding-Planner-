@@ -28,13 +28,10 @@ export const VendorLayout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0f172a] transition-colors duration-300">
+      <div className="min-h-screen flex items-center justify-center bg-ivory dark:bg-darkbg transition-colors duration-300">
         <div className="flex flex-col items-center space-y-4">
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-4 border-accent/20 animate-pulse" />
-            <div className="absolute inset-0 rounded-full border-t-4 border-r-4 border-accent animate-spin" />
-          </div>
-          <p className="text-sm font-semibold tracking-wider text-slate-500 uppercase animate-pulse">
+          <div className="w-12 h-12 border-4 border-rosegold/30 border-t-rosegold dark:border-goldAccent/30 dark:border-t-goldAccent rounded-full animate-spin"></div>
+          <p className="font-playfair text-xs tracking-widest text-darktext/60 dark:text-gray-400 uppercase animate-pulse">
             Loading Vendor Suite...
           </p>
         </div>
@@ -51,7 +48,7 @@ export const VendorLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] text-slate-800 dark:text-slate-200 transition-colors duration-300">
+    <div className="min-h-screen bg-ivory dark:bg-darkbg text-darktext dark:text-gray-305 transition-colors duration-300">
       
       {/* Sidebar Navigation */}
       <VendorSidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
@@ -60,17 +57,17 @@ export const VendorLayout = () => {
       <div className={`transition-all duration-300 min-h-screen flex flex-col ${padLeft}`}>
         
         {/* Top Navbar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-white/70 dark:bg-[#0f172a]/70 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-ivory/80 dark:bg-darkbg/85 backdrop-blur-md border-b border-rosegold/20 dark:border-goldAccent/15">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setMobileOpen(true)}
-              className="md:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-350 transition-colors"
+              className="md:hidden p-2 rounded-xl hover:bg-cream dark:hover:bg-darkcard text-rosegold dark:text-goldAccent transition-colors"
             >
               <FiMenu className="w-6 h-6" />
             </button>
             
             <div>
-              <h1 className="text-lg font-bold capitalize text-slate-900 dark:text-white">
+              <h1 className="text-lg font-bold capitalize text-darktext dark:text-goldAccent font-playfair tracking-wide">
                 {location.pathname.split('/').pop().replace('-', ' ') || 'Dashboard'}
               </h1>
             </div>
@@ -78,12 +75,12 @@ export const VendorLayout = () => {
 
           <div className="flex items-center space-x-4">
             <ThemeToggle />
-            <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+            <div className="h-8 w-px bg-rosegold/20 dark:bg-goldAccent/25 hidden sm:block" />
             <div className="hidden sm:flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded-full bg-accent/15 text-accent font-bold text-sm flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-rosegold text-white dark:bg-goldAccent dark:text-black font-bold text-sm flex items-center justify-center">
                 {user.name.charAt(0)}
               </div>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span className="text-xs font-semibold text-darktext dark:text-white font-playfair">
                 {user.name}
               </span>
             </div>

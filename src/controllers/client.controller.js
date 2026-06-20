@@ -3,6 +3,8 @@ import User from "../models/user.models.js";
 import Planner from "../models/planner.models.js";
 import PlannerRequest from "../models/plannerRequest.models.js";
 import Meeting from "../models/meeting.models.js";
+import WeddingEvent from "../models/weddingEvent.models.js";
+import Task from "../models/task.models.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -96,12 +98,14 @@ export const getMyPlanner = asyncHandler(async (req, res) => {
         date: { $gte: new Date() }
     }).sort({ date: 1, time: 1 });
 
-    // Mock some checklist tasks for the planner
-    const currentTasks = [
-        { id: 1, text: "Finalize catering floral setup", done: false },
-        { id: 2, text: "Send decor moodboard for approval", done: true },
-        { id: 3, text: "Review venue contract with lawyer", done: false }
-    ];
+    // Fetch active wedding event details
+    const weddingEvent = await WeddingEvent.findOne({ clientId: clientProfile._id });
+
+    // Fetch checklist tasks
+    let currentTasks = [];
+    if (weddingEvent) {
+        currentTasks = await Task.find({ eventId: weddingEvent._id }).sort({ createdAt: -1 });
+    }
 
     return res.status(200).json(
         new ApiResponse(
@@ -110,7 +114,12 @@ export const getMyPlanner = asyncHandler(async (req, res) => {
                 hired: true,
                 planner,
                 request: acceptedRequest,
-                currentTasks,
+                weddingEvent,
+                currentTasks: currentTasks.map(t => ({
+                    id: t._id,
+                    text: t.title,
+                    done: t.status === 'Completed'
+                })),
                 upcomingMeetings
             },
             "Hired planner details retrieved successfully"

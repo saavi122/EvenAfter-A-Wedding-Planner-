@@ -15,6 +15,14 @@ export default defineConfig({
         target: 'http://localhost:5000',
         ws: true,
         changeOrigin: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            if (err.code === 'ECONNRESET' || err.code === 'ECONNABORTED') {
+              return;
+            }
+            console.error('Vite Proxy Error:', err.message);
+          });
+        }
       }
     }
   }
