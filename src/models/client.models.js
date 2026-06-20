@@ -1,0 +1,79 @@
+import mongoose from 'mongoose';
+
+const clientSchema = new mongoose.Schema({
+  name:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"user",
+    required:true
+  },
+  email:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"user",
+    required:true
+  },
+  clientRole:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"user",
+    required:true
+  },
+  userId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"user",
+    required:true
+  },
+  EventIdName:{
+    type:String,
+    required:false
+  },
+  venue:{
+    type:String,
+    required:false
+  },
+  budget:{
+    type:Number,
+    required:false
+  },
+  timelineAccess:{
+    type:String,
+    required:false
+  }, 
+  clientId:{
+    type:String,
+    required:false
+  },
+  preferedPlanners:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"planner",
+    required:false
+  },
+  partnerName:{
+    type:String,
+    default:""
+  },
+  weddingDate:{
+    type:Date
+  },
+  location:{
+    type:String,
+    default:""
+  },
+  profilePhoto:{
+    type:String,
+    default:"https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=256"
+  },
+  coverPhoto:{
+    type:String,
+    default:"https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200"
+  },
+  address:{
+    type:String,
+    default:""
+  },
+  weddingStatus:{
+    type:String,
+    default:"Planning"
+  }
+});
+
+const client = mongoose.model('client',clientSchema);
+export default client;

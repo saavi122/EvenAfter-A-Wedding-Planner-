@@ -1,0 +1,89 @@
+import mongoose from 'mongoose';
+
+const plannerSchema = new mongoose.Schema({
+  name:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"user",
+    required:true
+  },
+  email:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"user",
+    required:true
+  },
+  plannerRole:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"user",
+    required:true
+  },
+  userId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"user",
+    required:true
+  },
+  companyName:{
+    type:String,
+    required:false
+  },
+  specialiazation:{
+    type:String,
+    required:false
+  },
+  assignedEvents:{
+    type:String,
+    required:false
+  }, 
+  exprience:{
+    type:String,
+    required:false
+  },
+  ratings:{
+    type:Number,
+    required:false,
+    default:0
+  },
+  status:{
+    type:String,
+    required:false,
+    default:"active"
+  },
+  plannerId:{
+    type:String,
+    unique:true
+  },
+  preferedVendors:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"vendor",
+    required:false
+  },
+  city:{
+    type:String,
+    default:"Mumbai"
+  },
+  availabilityStatus:{
+    type:String,
+    default:"Available"
+  },
+  bio:{
+    type:String,
+    default:"Luxury wedding planner crafting unforgettable elegant experiences."
+  },
+  languages:[{
+    type:String
+  }],
+  achievements:[{
+    type:String
+  }],
+  categoriesHandled:[{
+    type:String
+  }],
+  coverImage:{
+    type:String
+  },
+  profileImage:{
+    type:String
+  }
+});
+
+const planner = mongoose.model('planner',plannerSchema);
+export default planner;

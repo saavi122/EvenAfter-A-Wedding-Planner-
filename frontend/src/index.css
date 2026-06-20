@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-roboto bg-ivory text-darktext dark:bg-darkbg dark:text-gray-300 transition-colors duration-300;
+  }
+}
+
+/* Custom premium styles */
+.arch-card {
+  border-radius: 120px 120px 0 0;
+}
+
+.luxury-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(201, 162, 126, 0.2);
+}
+
+.dark .luxury-card {
+  background: rgba(30, 30, 30, 0.5);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+/* Custom utility for spin speed */
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,457 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
+import { io } from 'socket.io-client';
+import { FiSend, FiCamera, FiPaperclip, FiClock, FiCheck, FiCheckCircle, FiChevronLeft, FiPhone, FiVideo } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
+
+export const DirectChat = () => {
+  const { plannerId } = useParams(); // This holds the recipient user ID
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
+
+  // Chat state
+  const [typedMessage, setTypedMessage] = useState('');
+  const [typing, setTyping] = useState(false);
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const [attachmentOpen, setAttachmentOpen] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+
+  // 1. Fetch active conversations (unique users we have chatted with)
+  const { data: conversationsResponse, isLoading: listLoading } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: async () => {
+      const res = await fetch('/api/chat/conversations');
+      if (!res.ok) throw new Error('Failed to load conversations');
+      return res.json();
+    }
+  });
+
+  const conversations = conversationsResponse?.data || [];
+
+  // 2. Fetch details of the recipient if not already in the conversations list
+  const { data: chatUserResponse } = useQuery({
+    queryKey: ['chatUser', plannerId],
+    queryFn: async () => {
+      if (!plannerId || plannerId === 'list') return null;
+      const res = await fetch(`/api/auth/user/${plannerId}`);
+      if (!res.ok) return null;
+      const result = await res.json();
+      return result.data;
+    },
+    enabled: !!plannerId && plannerId !== 'list' && !conversations.some(c => c.user._id === plannerId)
+  });
+
+  // Construct display conversations list (prepend new contact if needed)
+  const displayConversations = [...conversations];
+  if (chatUserResponse && !conversations.some(c => c.user._id === plannerId)) {
+    displayConversations.unshift({
+      user: chatUserResponse.user,
+      profile: chatUserResponse.profile,
+      lastMessage: "No messages yet",
+      lastMessageTime: new Date(),
+      unreadCount: 0
+    });
+  }
+
+  // Active conversation partner details
+  const activeConversation = displayConversations.find(c => c.user._id === plannerId);
+  const recipientUser = activeConversation?.user;
+  const recipientProfile = activeConversation?.profile;
+
+  // 3. Fetch messages for the active conversation
+  const { data: messagesResponse, isLoading: messagesLoading } = useQuery({
+    queryKey: ['messages', plannerId],
+    queryFn: async () => {
+      if (!plannerId || plannerId === 'list') return [];
+      const res = await fetch(`/api/chat/${plannerId}`);
+      if (!res.ok) throw new Error('Failed to fetch messages');
+      const result = await res.json();
+      return result.data || [];
+    },
+    enabled: !!plannerId && plannerId !== 'list'
+  });
+
+  const messages = messagesResponse || [];
+
+  // Setup Socket.io Real-Time connection
+  useEffect(() => {
+    if (!user?._id) return;
+
+    // Connect to backend server socket
+    const socket = io(window.location.origin, {
+      transports: ['websocket', 'polling']
+    });
+    socketRef.current = socket;
+
+    // Join room
+    socket.emit("join", user._id);
+
+    // Listen for new messages
+    socket.on("messageReceived", (newMsg) => {
+      if (newMsg.sender === plannerId) {
+        queryClient.setQueryData(['messages', plannerId], (old) => {
+          const list = old || [];
+          if (list.some(m => m._id === newMsg._id)) return list;
+          return [...list, newMsg];
+        });
+        // Invalidate conversation list to update last message/unread count
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      } else {
+        // Trigger notification check or conversation list reload
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      }
+    });
+
+    // Listen for typing indicator
+    socket.on("typingStatus", ({ senderId, isTyping }) => {
+      if (senderId === plannerId) {
+        setPartnerTyping(isTyping);
+      }
+    });
+
+    // Listen for online status updates
+    socket.on("userOnlineStatus", ({ userId, status }) => {
+      setOnlineUsers(prev => {
+        const next = new Set(prev);
+        if (status === "online") {
+          next.add(userId);
+        } else {
+          next.delete(userId);
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?._id, plannerId, queryClient]);
+
+  // Broadcast typing indicator
+  useEffect(() => {
+    if (!socketRef.current || !plannerId || plannerId === 'list') return;
+
+    const isCurrentlyTyping = typedMessage.trim().length > 0;
+    socketRef.current.emit("typing", {
+      senderId: user._id,
+      receiverId: plannerId,
+      isTyping: isCurrentlyTyping
+    });
+  }, [typedMessage, plannerId, user?._id]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, partnerTyping]);
+
+  // Send Message Mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async (messageData) => {
+      const res = await fetch(`/api/chat/${plannerId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(messageData)
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error('Failed to send message');
+      return result.data;
+    },
+    onSuccess: (newMessage) => {
+      setTypedMessage('');
+      // Optimistically append message
+      queryClient.setQueryData(['messages', plannerId], (old) => [...(old || []), newMessage]);
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+
+      // Emit over socket
+      if (socketRef.current) {
+        socketRef.current.emit("sendMessage", {
+          sender: user._id,
+          receiver: plannerId,
+          message: newMessage.message,
+          image: newMessage.image,
+          file: newMessage.file,
+          _id: newMessage._id,
+          createdAt: newMessage.createdAt
+        });
+      }
+    }
+  });
+
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (!typedMessage.trim()) return;
+    sendMessageMutation.mutate({ message: typedMessage });
+  };
+
+  const handleAttachImage = () => {
+    const imageUrl = prompt("Enter a wedding concept image URL to share:", "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=600");
+    if (!imageUrl) return;
+    sendMessageMutation.mutate({ message: "Concept Photo:", image: imageUrl });
+    setAttachmentOpen(false);
+  };
+
+  const handleAttachFile = () => {
+    const fileName = prompt("Enter document filename to upload:", "Wedding_Catering_Invoice.pdf");
+    if (!fileName) return;
+    sendMessageMutation.mutate({ message: `Attached Document: ${fileName}`, file: fileName });
+    setAttachmentOpen(false);
+  };
+
+  // Helper to dynamically route chat navigation based on role
+  const handleChatUserNavigation = (targetUserId) => {
+    navigate(`/${user.role}/chat/${targetUserId}`);
+  };
+
+  // Profile image selector helper
+  const getProfileImage = (convItem) => {
+    return convItem.profile?.profileImage || convItem.profile?.vendorLogo || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256";
+  };
+
+  return (
+    <div className="h-[calc(100vh-140px)] flex border border-slate-200/50 dark:border-slate-800/50 rounded-3xl overflow-hidden bg-white dark:bg-[#0f172a] shadow-lg relative">
+      
+      {/* 1. Left side: Dialogues list */}
+      <div className={`w-full md:w-[320px] border-r border-slate-200/50 dark:border-slate-800/50 flex flex-col ${
+        plannerId && plannerId !== 'list' ? 'hidden md:flex' : 'flex'
+      }`}>
+        <div className="p-4 border-b border-slate-200/50 dark:border-slate-800/50">
+          <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">Active Dialogues</h3>
+          <p className="text-[10px] text-slate-500 mt-1">Direct message panel with wedding coordinators</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/40">
+          {listLoading && (
+            <div className="p-4 text-center text-xs text-slate-450 animate-pulse">Loading channels...</div>
+          )}
+          {!listLoading && displayConversations.length === 0 && (
+            <div className="p-8 text-center text-xs text-slate-400">No active dialogues yet.</div>
+          )}
+          {!listLoading && displayConversations.map((cItem) => {
+            const isSelected = cItem.user._id === plannerId;
+
+            return (
+              <div
+                key={cItem.user._id}
+                onClick={() => handleChatUserNavigation(cItem.user._id)}
+                className={`p-4 flex items-center space-x-3 cursor-pointer transition-colors ${
+                  isSelected ? 'bg-slate-50 dark:bg-slate-900/40 border-l-4 border-accent' : 'hover:bg-slate-50/50 dark:hover:bg-slate-900/10'
+                }`}
+              >
+                <div className="relative">
+                  <img
+                    src={getProfileImage(cItem)}
+                    alt={cItem.user.name}
+                    className="w-11 h-11 rounded-full object-cover border border-slate-200/50"
+                  />
+                  {(onlineUsers.has(cItem.user._id) || cItem.user._id === plannerId) && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0f172a]" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{cItem.user.name}</h4>
+                    {cItem.unreadCount > 0 && (
+                      <span className="bg-accent text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                        {cItem.unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-500 capitalize">{cItem.user.role} {cItem.profile?.companyName ? `• ${cItem.profile.companyName}` : ''}</p>
+                  <p className="text-[10.5px] text-slate-400 dark:text-slate-500 truncate mt-1">
+                    {cItem.lastMessage}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. Right side: Chat Window */}
+      <div className={`flex-1 flex flex-col bg-slate-50/30 dark:bg-[#070b13] ${
+        !plannerId || plannerId === 'list' ? 'hidden md:flex justify-center items-center p-8' : 'flex'
+      }`}>
+        
+        {!plannerId || plannerId === 'list' ? (
+          <div className="text-center max-w-sm space-y-4">
+            <div className="w-16 h-16 rounded-full bg-accent/10 text-accent flex items-center justify-center mx-auto shadow-inner">
+              <FiCamera className="w-8 h-8 text-accent" />
+            </div>
+            <h3 className="text-base font-extrabold text-slate-950 dark:text-white uppercase tracking-tight">Your Inbox</h3>
+            <p className="text-xs text-slate-500">Select a dialogue partner from the left to start a real-time conversation and collaborate on wedding events.</p>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="px-6 py-4 bg-white dark:bg-[#0f172a] border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center">
+              
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => navigate(`/${user.role}/chat/list`)}
+                  className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+                >
+                  <FiChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="relative">
+                  <img
+                    src={recipientProfile?.profileImage || recipientProfile?.vendorLogo || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256"}
+                    alt={recipientUser?.name || "User"}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0f172a]" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                    {recipientUser?.name}
+                  </h4>
+                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{recipientUser?.role}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
+                  <FiPhone className="w-4.5 h-4.5" />
+                </button>
+                <button className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
+                  <FiVideo className="w-4.5 h-4.5" />
+                </button>
+              </div>
+
+            </div>
+
+            {/* Message Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
+              
+              {messagesLoading && (
+                <div className="text-center text-xs text-slate-450 py-10 animate-pulse">Loading message deck...</div>
+              )}
+
+              {!messagesLoading && messages.map((msg) => {
+                const isMine = msg.sender === user._id;
+
+                return (
+                  <div key={msg._id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[70%] rounded-2xl p-4 shadow-sm relative ${
+                      isMine 
+                        ? 'bg-gradient-to-r from-accent to-primary text-white rounded-br-none' 
+                        : 'bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-200/50 dark:border-slate-800/50'
+                    }`}>
+                      
+                      <p className="text-xs leading-relaxed font-medium">{msg.message}</p>
+                      
+                      {msg.image && (
+                        <div className="mt-3 rounded-xl overflow-hidden border border-slate-200/25 max-w-[240px]">
+                          <img src={msg.image} alt="concept" className="w-full object-cover max-h-[160px]" />
+                        </div>
+                      )}
+
+                      {msg.file && (
+                        <div className="mt-2.5 p-2 rounded-xl bg-slate-100/10 backdrop-blur flex items-center space-x-2 border border-slate-200/10">
+                          <FiPaperclip className="w-4 h-4 text-accent flex-shrink-0" />
+                          <span className="text-[10px] font-bold truncate max-w-[150px]">{msg.file}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end items-center space-x-1 mt-2 text-[9px] opacity-60">
+                        <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        {isMine && (
+                          msg.read 
+                            ? <FiCheckCircle className="text-emerald-500 w-3 h-3" /> 
+                            : <FiCheck className="text-slate-400 w-3 h-3" />
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
+                );
+              })}
+
+              {partnerTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-white dark:bg-[#0f172a] rounded-2xl rounded-bl-none p-4 shadow-sm border border-slate-200/50 dark:border-slate-800/50 flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 animate-bounce" />
+                    <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 animate-bounce delay-150" />
+                    <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 animate-bounce delay-300" />
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Chat Input Field */}
+            <div className="p-4 bg-white dark:bg-[#0f172a] border-t border-slate-200/50 dark:border-slate-800/50 relative">
+              
+              <AnimatePresence>
+                {attachmentOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-20 left-4 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 shadow-xl flex flex-col space-y-1 z-20 text-[11px] font-bold"
+                  >
+                    <button
+                      onClick={handleAttachImage}
+                      className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-2 text-slate-700 dark:text-slate-350"
+                    >
+                      <FiCamera className="w-4.5 h-4.5 text-accent" />
+                      <span>Share Photo</span>
+                    </button>
+                    <button
+                      onClick={handleAttachFile}
+                      className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-2 text-slate-700 dark:text-slate-350"
+                    >
+                      <FiPaperclip className="w-4.5 h-4.5 text-accent" />
+                      <span>Attach Document</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <form onSubmit={handleSend} className="flex items-center space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setAttachmentOpen(!attachmentOpen)}
+                  className={`p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors ${
+                    attachmentOpen ? 'bg-slate-100 dark:bg-slate-800 text-accent' : ''
+                  }`}
+                >
+                  <FiPaperclip className="w-5 h-5" />
+                </button>
+
+                <input
+                  type="text"
+                  placeholder="Type a message to discuss your wedding brief..."
+                  value={typedMessage}
+                  onChange={(e) => setTypedMessage(e.target.value)}
+                  className="flex-1 px-4 py-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 outline-none text-sm transition-all focus:border-accent text-slate-850 dark:text-slate-100"
+                />
+
+                <motion.button
+                  type="submit"
+                  disabled={!typedMessage.trim() || sendMessageMutation.isPending}
+                  className="p-3.5 bg-gradient-to-r from-accent to-primary text-white rounded-2xl shadow-lg shadow-accent/20 flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <FiSend className="w-5 h-5" />
+                </motion.button>
+              </form>
+
+            </div>
+          </>
+        )}
+
+      </div>
+
+    </div>
+  );
+};
+
+export default DirectChat;
