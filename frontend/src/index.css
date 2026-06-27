@@ -49,3 +49,48 @@
     transform: rotate(360deg);
   }
 }
+
+/* Pricing page premium styles */
+.pricing-glow {
+  box-shadow: 0 0 30px rgba(201, 162, 126, 0.15), 0 0 60px rgba(201, 162, 126, 0.05);
+}
+
+.dark .pricing-glow {
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.15), 0 0 60px rgba(212, 175, 55, 0.05);
+}
+
+.pricing-popular-border {
+  position: relative;
+}
+
+.pricing-popular-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, #C9A27E, #D4AF37, #C9A27E, #D8C3A5);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}

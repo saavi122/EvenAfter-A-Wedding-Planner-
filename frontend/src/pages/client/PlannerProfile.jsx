@@ -5,18 +5,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiStar, FiMapPin, FiCalendar, FiMessageSquare, FiBriefcase, 
   FiUserCheck, FiChevronRight, FiCheck, FiX, FiAward, FiGlobe, 
-  FiHeart, FiCompass, FiSmile, FiShield 
+  FiHeart, FiCompass, FiSmile, FiShield, FiPhone, FiMail, FiShare2, FiGrid, FiClock, FiPlus
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 export const PlannerProfile = () => {
   const { plannerId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   // Selected portfolio category filter
-  const [portfolioFilter, setPortfolioFilter] = useState('Royal Weddings');
+  const [portfolioFilter, setPortfolioFilter] = useState('All');
 
   // Lightbox zoom state
   const [activeLightbox, setActiveLightbox] = useState(null);
@@ -24,6 +26,7 @@ export const PlannerProfile = () => {
   // Modal triggers
   const [isMeetingOpen, setIsMeetingOpen] = useState(false);
   const [isHireOpen, setIsHireOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   // Form states
   const [meetingForm, setMeetingForm] = useState({ date: '', time: '', agenda: '', meetingType: 'Google Meet' });
@@ -74,6 +77,19 @@ export const PlannerProfile = () => {
   });
 
   const reviews = reviewsResponse?.data || [];
+
+  // 4. Fetch dynamic events history data
+  const { data: eventsResponse, isLoading: eventsLoading } = useQuery({
+    queryKey: ['plannerEvents', plannerId],
+    queryFn: async () => {
+      const res = await fetch(`/api/planners/${plannerId}/events`);
+      if (!res.ok) throw new Error('Failed to load events');
+      return res.json();
+    },
+    enabled: !!plannerId
+  });
+
+  const events = eventsResponse?.data || [];
 
   // Mutations
   const scheduleMeetingMutation = useMutation({
@@ -129,7 +145,16 @@ export const PlannerProfile = () => {
     hirePlannerMutation.mutate(hireForm);
   };
 
-  if (plannerLoading || portfolioLoading || reviewsLoading) {
+  const toggleSavePlanner = () => {
+    setIsSaved(!isSaved);
+    if (!isSaved) {
+      toast.success("Planner saved to your favorites!");
+    } else {
+      toast.success("Planner removed from your favorites.");
+    }
+  };
+
+  if (plannerLoading || portfolioLoading || reviewsLoading || eventsLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center bg-ivory dark:bg-darkbg">
         <div className="flex flex-col items-center space-y-3">
@@ -144,133 +169,191 @@ export const PlannerProfile = () => {
     return (
       <div className="text-center py-16 bg-ivory dark:bg-darkbg min-h-[60vh] flex flex-col items-center justify-center text-[#5c4033] dark:text-goldAccent">
         <h3 className="text-lg font-bold font-playfair">Planner profile not found</h3>
-        <button onClick={() => navigate('/client/planners')} className="mt-4 px-6 py-2 bg-rosegold dark:bg-goldAccent text-white dark:text-black font-semibold rounded text-xs shadow">
-          Back to Directory
+        <button onClick={() => navigate(-1)} className="mt-4 px-6 py-2 bg-rosegold dark:bg-goldAccent text-white dark:text-black font-semibold rounded text-xs shadow">
+          Go Back
         </button>
       </div>
     );
   }
 
-  // Portfolio categories mapping
-  const portfolioCategories = [
-    'Royal Weddings',
-    'Beach Weddings',
-    'Garden Weddings',
-    'Destination Weddings',
-    'Traditional Weddings',
-    'Reception Events'
+  // Predefined lists or dynamic fallbacks
+  const specializationsList = planner.specializations?.length > 0
+    ? planner.specializations
+    : ["Destination Weddings", "Luxury Weddings", "Traditional Weddings", "Corporate Events", "Engagement Ceremonies"];
+
+  const servicesList = planner.servicesOffered?.length > 0
+    ? planner.servicesOffered
+    : ["Full Wedding Planning", "Venue Selection", "Decoration", "Catering Coordination", "Photography Coordination", "Guest Management", "Entertainment Planning"];
+
+  const citiesServedList = planner.citiesServed?.length > 0
+    ? planner.citiesServed
+    : ["Mumbai", "Goa", "Udaipur", "Delhi", "Jaipur"];
+
+  // Filter events based on filter selection
+  const filteredEvents = portfolioFilter === 'All'
+    ? events
+    : events.filter(e => e.eventType === portfolioFilter);
+
+  // Derive unique event types for filters
+  const eventTypes = ['All', ...new Set(events.map(e => e.eventType).filter(Boolean))];
+
+  // Default images for gallery if portfolio is empty
+  const defaultGallery = [
+    "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=600",
+    "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?q=80&w=600",
+    "https://images.unsplash.com/photo-1507504038482-7621c5b9e078?q=80&w=600",
+    "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?q=80&w=600",
+    "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=600",
+    "https://images.unsplash.com/photo-1583939003579-730e3918a45a?q=80&w=600"
   ];
 
-  // Specific photos by category for premium pinterest feel
-  const galleryPhotos = {
-    'Royal Weddings': [
-      "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=600",
-      "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?q=80&w=600",
-      "https://images.unsplash.com/photo-1507504038482-7621c5b9e078?q=80&w=600"
-    ],
-    'Beach Weddings': [
-      "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=600",
-      "https://images.unsplash.com/photo-1504196606672-aef5c9cefc92?q=80&w=600",
-      "https://images.unsplash.com/photo-1532712938310-34cb3982ef74?q=80&w=600"
-    ],
-    'Garden Weddings': [
-      "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?q=80&w=600",
-      "https://images.unsplash.com/photo-1478812954026-9c750f0e89fc?q=80&w=600",
-      "https://images.unsplash.com/photo-1546708973-b339540b5162?q=80&w=600"
-    ],
-    'Destination Weddings': [
-      "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=600",
-      "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=600",
-      "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?q=80&w=600"
-    ],
-    'Traditional Weddings': [
-      "https://images.unsplash.com/photo-1583939003579-730e3918a45a?q=80&w=600",
-      "https://images.unsplash.com/photo-1607190074257-dd4b7af0309f?q=80&w=600",
-      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=600"
-    ],
-    'Reception Events': [
-      "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?q=80&w=600",
-      "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=600",
-      "https://images.unsplash.com/photo-1519225495810-7517c300ea97?q=80&w=600"
-    ]
-  };
+  const galleryImages = portfolio.images?.length > 0 ? portfolio.images : defaultGallery;
 
-  const selectedImages = galleryPhotos[portfolioFilter] || galleryPhotos['Royal Weddings'];
+  // Contact links fallback
+  const phone = planner.contactDetails?.phone || planner.userId?.phoneNo || "+91 98765 43210";
+  const email = planner.contactDetails?.email || planner.userId?.email || "planner@weddingplatform.com";
+  const website = planner.contactDetails?.website || "www.fairytale-vows.com";
+  const socials = planner.contactDetails?.socials || { instagram: "instagram.com/wedding_curator", facebook: "facebook.com/wedding_curator", linkedin: "linkedin.com/in/wedding_curator" };
 
   return (
-    <div className="space-y-10 pb-16 font-roboto">
+    <div className="space-y-10 pb-16 font-roboto bg-ivory/20 dark:bg-darkbg/10 min-h-screen">
       
-      {/* Magazine Banner Cover Header */}
-      <div className="relative rounded-3xl overflow-hidden h-[250px] md:h-[350px] border border-rosegold/20 dark:border-goldAccent/15 shadow-md">
+      {/* Hero Banner with Profile Cover */}
+      <div className="relative rounded-3xl overflow-hidden h-[280px] md:h-[380px] border border-rosegold/20 dark:border-goldAccent/15 shadow-lg">
         <img 
-          src={planner.coverImage || "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200"}
+          src={planner.coverImage || "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?q=80&w=1200"}
           alt="Wedding Cover"
           className="w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/20" />
         
         {/* Soft overlay quote */}
-        <div className="absolute inset-0 flex items-center justify-center p-6 text-center select-none">
-          <span className="font-playfair text-white text-lg md:text-2xl font-light italic tracking-wider max-w-xl">
-            "We design ceremonies that tell your unique love story."
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none">
+          <span className="font-playfair text-white text-xl md:text-3xl font-light italic tracking-wider max-w-2xl leading-relaxed">
+            "Crafting unforgettable moments, curating majestic memories."
           </span>
+          <div className="mt-4 flex items-center space-x-2">
+            <span className="h-px bg-goldAccent/40 w-12" />
+            <span className="text-goldAccent text-xs uppercase tracking-widest font-semibold font-playfair">Fairytale Weddings</span>
+            <span className="h-px bg-goldAccent/40 w-12" />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start px-1 md:px-4">
         
         {/* ================================================= */}
-        {/* LEFT COLUMN: ARCH PORTRAIT & SPECIAL DETAILS      */}
+        {/* LEFT COLUMN: BASIC INFO, CONTACT, SPECIALTIES    */}
         {/* ================================================= */}
         <div className="lg:col-span-4 space-y-8 flex flex-col items-center text-center lg:items-stretch lg:text-left">
           
-          {/* Magazine Portrait Overlap Wrapper */}
-          <div className="relative w-full max-w-[280px] lg:max-w-none aspect-[4/5] rounded-t-full rounded-b-2xl overflow-hidden border-2 border-rosegold/35 dark:border-goldAccent/35 shadow-lg bg-cream/40 mx-auto -mt-20 lg:-mt-28 z-20">
+          {/* Profile Picture Overlap */}
+          <div className="relative w-full max-w-[260px] lg:max-w-none aspect-[4/5] rounded-t-full rounded-b-3xl overflow-hidden border-4 border-white dark:border-darkcard shadow-2xl bg-cream/40 mx-auto -mt-24 lg:-mt-36 z-20">
             <img
               src={planner.profileImage || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256"}
               alt={planner.name?.name || "Wedding Curator"}
               className="w-full h-full object-cover"
             />
+            {planner.status === 'active' && (
+              <div className="absolute bottom-4 right-4 bg-emerald-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center border-2 border-white" title="Verified Professional">
+                <FiUserCheck className="w-5 h-5" />
+              </div>
+            )}
           </div>
 
-          {/* Title & Brand */}
+          {/* Name & Company */}
           <div className="space-y-2 mt-4 text-center">
-            <h2 className="text-3xl font-bold font-playfair tracking-wide text-darktext dark:text-goldAccent">
-              {planner.name?.name}
-            </h2>
-            <p className="text-[10px] font-bold tracking-widest text-rosegold dark:text-goldAccent/80 uppercase">
-              Elite Wedding Coordinator
+            <div className="flex items-center justify-center space-x-2">
+              <h2 className="text-3xl font-extrabold font-playfair tracking-wide text-darktext dark:text-goldAccent">
+                {planner.name?.name || planner.companyName}
+              </h2>
+              {planner.status === 'active' && (
+                <span className="px-2 py-0.5 bg-rosegold/10 text-rosegold dark:text-goldAccent dark:bg-goldAccent/10 text-[9px] uppercase tracking-widest font-black rounded-full border border-rosegold/20">
+                  Verified
+                </span>
+              )}
+            </div>
+            <p className="text-xs font-semibold tracking-widest text-rosegold dark:text-goldAccent/80 uppercase">
+              {planner.companyName || "Elite Wedding & Events Group"}
             </p>
-            <div className="flex items-center justify-center space-x-2 text-[10px] italic text-darktext/60 dark:text-gray-400">
-              <span className="h-px bg-rosegold/20 w-8" />
-              <span>Curation & Majestic Production</span>
-              <span className="h-px bg-rosegold/20 w-8" />
+            <div className="flex items-center justify-center space-x-2 text-xs text-darktext/50 dark:text-gray-400">
+              <FiMapPin className="text-rosegold dark:text-goldAccent" />
+              <span>{planner.city || "Mumbai, India"}</span>
             </div>
           </div>
 
-          {/* Details Table */}
-          <div className="w-full border border-rosegold/20 dark:border-goldAccent/15 rounded-3xl bg-cream/25 dark:bg-darkcard/40 p-5 space-y-3 text-xs text-darktext dark:text-gray-300">
-            {[
-              { label: "Experience", value: planner.exprience || "8+ Years", icon: FiBriefcase },
-              { label: "Events Planned", value: `${planner.assignedEvents || '250'} Weddings`, icon: FiCalendar },
-              { label: "Specialization", value: planner.specialiazation || "Destination & Royal Banquets", icon: FiStar },
-              { label: "HQ Location", value: planner.city || "Udaipur, India", icon: FiMapPin },
-              { label: "Availability", value: planner.availabilityStatus || "Available", icon: FiClock }
-            ].map((item, i) => (
-              <div key={i} className="flex justify-between items-start py-2.5 border-b border-rosegold/10 dark:border-goldAccent/10 last:border-0 last:pb-0">
-                <span className="font-semibold text-darktext/60 dark:text-gray-400 flex items-center">
-                  <item.icon className="mr-2 text-rosegold dark:text-goldAccent w-4 h-4" />
-                  {item.label}
-                </span>
-                <span className="text-right font-bold text-darktext dark:text-white max-w-[180px] font-playfair">{item.value}</span>
+          {/* Experience Statistics */}
+          <div className="w-full border border-rosegold/20 dark:border-goldAccent/15 rounded-3xl bg-cream/15 dark:bg-darkcard/40 p-5 space-y-4 shadow-sm">
+            <h4 className="text-[10px] font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent border-b border-rosegold/10 dark:border-goldAccent/10 pb-2">Experience & Stats</h4>
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="p-3 bg-white/40 dark:bg-black/10 rounded-2xl border border-rosegold/10">
+                <p className="text-xl font-bold font-playfair text-rosegold dark:text-goldAccent">{planner.exprience || planner.experience || "8+ Years"}</p>
+                <p className="text-[9px] text-darktext/65 uppercase tracking-wider mt-1">Experience</p>
               </div>
-            ))}
+              <div className="p-3 bg-white/40 dark:bg-black/10 rounded-2xl border border-rosegold/10">
+                <p className="text-xl font-bold font-playfair text-rosegold dark:text-goldAccent">{planner.assignedEvents || events.length || 150}</p>
+                <p className="text-[9px] text-darktext/65 uppercase tracking-wider mt-1">Events Planned</p>
+              </div>
+              <div className="p-3 bg-white/40 dark:bg-black/10 rounded-2xl border border-rosegold/10">
+                <p className="text-xl font-bold font-playfair text-rosegold dark:text-goldAccent">{planner.happyClients || 140}</p>
+                <p className="text-[9px] text-darktext/65 uppercase tracking-wider mt-1">Happy Clients</p>
+              </div>
+              <div className="p-3 bg-white/40 dark:bg-black/10 rounded-2xl border border-rosegold/10">
+                <p className="text-xl font-bold font-playfair text-rosegold dark:text-goldAccent flex items-center justify-center">
+                  <FiStar className="fill-current text-amber-500 mr-1 w-4 h-4" />
+                  {planner.ratings || "5.0"}
+                </p>
+                <p className="text-[9px] text-darktext/65 uppercase tracking-wider mt-1">Client Rating</p>
+              </div>
+            </div>
+            <div className="pt-2 text-center text-xs font-semibold text-darktext/65 border-t border-rosegold/10">
+              <p>Serving Cities: {citiesServedList.join(', ')}</p>
+            </div>
           </div>
 
-          {/* About Bio block */}
-          <div className="w-full border border-rosegold/20 dark:border-goldAccent/15 rounded-3xl bg-cream/25 dark:bg-darkcard/40 p-6 space-y-4">
-            <h4 className="text-[9px] font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent border-b border-rosegold/10 dark:border-goldAccent/10 pb-2">Philosophy</h4>
-            <p className="text-xs leading-relaxed text-darktext/75 dark:text-gray-450 italic">
+          {/* Contact Details Card */}
+          <div className="w-full border border-rosegold/20 dark:border-goldAccent/15 rounded-3xl bg-cream/15 dark:bg-darkcard/40 p-5 space-y-4 shadow-sm text-xs">
+            <h4 className="text-[10px] font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent border-b border-rosegold/10 dark:border-goldAccent/10 pb-2">Contact Details</h4>
+            
+            <div className="space-y-3">
+              <a href={`tel:${phone}`} className="flex items-center space-x-3 text-darktext/80 dark:text-gray-300 hover:text-rosegold transition-colors">
+                <span className="p-2 rounded-xl bg-rosegold/10 dark:bg-goldAccent/10 text-rosegold dark:text-goldAccent">
+                  <FiPhone className="w-4 h-4" />
+                </span>
+                <span className="font-semibold">{phone}</span>
+              </a>
+              
+              <a href={`mailto:${email}`} className="flex items-center space-x-3 text-darktext/80 dark:text-gray-300 hover:text-rosegold transition-colors">
+                <span className="p-2 rounded-xl bg-rosegold/10 dark:bg-goldAccent/10 text-rosegold dark:text-goldAccent">
+                  <FiMail className="w-4 h-4" />
+                </span>
+                <span className="font-semibold break-all">{email}</span>
+              </a>
+
+              {website && (
+                <a href={`https://${website}`} target="_blank" rel="noreferrer" className="flex items-center space-x-3 text-darktext/80 dark:text-gray-300 hover:text-rosegold transition-colors">
+                  <span className="p-2 rounded-xl bg-rosegold/10 dark:bg-goldAccent/10 text-rosegold dark:text-goldAccent">
+                    <FiGlobe className="w-4 h-4" />
+                  </span>
+                  <span className="font-semibold">{website}</span>
+                </a>
+              )}
+            </div>
+
+            {/* Social media links */}
+            <div className="flex justify-center space-x-4 pt-3 border-t border-rosegold/10">
+              {Object.entries(socials).map(([platform, url]) => (
+                <a key={platform} href={`https://${url}`} target="_blank" rel="noreferrer" className="text-darktext/60 hover:text-rosegold dark:hover:text-goldAccent capitalize text-[10px] font-bold tracking-wider">
+                  {platform}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Philosophy / Bio Section */}
+          <div className="w-full border border-rosegold/20 dark:border-goldAccent/15 rounded-3xl bg-cream/15 dark:bg-darkcard/40 p-6 space-y-3">
+            <h4 className="text-[10px] font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent border-b border-rosegold/10 dark:border-goldAccent/10 pb-2">About Curator</h4>
+            <p className="text-xs leading-relaxed text-darktext/75 dark:text-gray-350 italic">
               "{planner.bio || 'I believe that planning a wedding is about curating details that reflect who you are. With precise design, floral accents, and royal logistics, we construct your grand fairytale.'}"
             </p>
           </div>
@@ -278,75 +361,126 @@ export const PlannerProfile = () => {
         </div>
 
         {/* ================================================= */}
-        {/* RIGHT COLUMN: SPECS, PORTFOLIO MASONRY & REVIEWS  */}
+        {/* RIGHT COLUMN: SPECS, PORTFOLIO & REVIEWS          */}
         {/* ================================================= */}
         <div className="lg:col-span-8 space-y-10">
           
-          {/* Action Header Panel */}
+          {/* Role-Based Actions Header */}
           <div className="flex flex-wrap items-center gap-3 justify-center lg:justify-start">
-            <button
-              onClick={() => navigate(`/client/chat/${planner.name?._id || planner.userId?._id}`)}
-              className="px-6 py-2.5 bg-rosegold dark:bg-goldAccent text-white dark:text-black font-semibold text-xs uppercase tracking-widest rounded shadow hover:opacity-90 flex items-center space-x-1.5"
-            >
-              <FiMessageSquare className="w-4 h-4" />
-              <span>Chat with Planner</span>
-            </button>
+            {/* Show Booking & Hiring actions only for Clients */}
+            {user?.role === 'client' && (
+              <>
+                <button
+                  onClick={() => navigate(`/client/chat/${planner.userId?._id || planner.name?._id}`)}
+                  className="px-6 py-3 bg-rosegold dark:bg-goldAccent text-white dark:text-black font-semibold text-xs uppercase tracking-widest rounded-2xl shadow hover:opacity-90 flex items-center space-x-1.5 transition-all"
+                >
+                  <FiMessageSquare className="w-4 h-4" />
+                  <span>Chat Planner</span>
+                </button>
+                
+                <button
+                  onClick={() => setIsMeetingOpen(true)}
+                  className="px-6 py-3 bg-transparent border border-rosegold dark:border-goldAccent text-rosegold dark:text-goldAccent font-semibold text-xs uppercase tracking-widest rounded-2xl hover:bg-rosegold/5 transition-all"
+                >
+                  Schedule Call
+                </button>
+
+                <button
+                  onClick={() => setIsHireOpen(true)}
+                  className="px-6 py-3 bg-[#4A403A] text-white font-semibold text-xs uppercase tracking-widest rounded-2xl shadow hover:bg-opacity-95 transition-all"
+                >
+                  Hire Planner
+                </button>
+
+                <button
+                  onClick={toggleSavePlanner}
+                  className={`px-5 py-3 border rounded-2xl text-xs font-semibold uppercase tracking-wider flex items-center space-x-1.5 transition-all ${
+                    isSaved 
+                      ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/20' 
+                      : 'border-rosegold text-rosegold hover:bg-rosegold/5'
+                  }`}
+                >
+                  <FiHeart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                  <span>{isSaved ? 'Saved' : 'Save Planner'}</span>
+                </button>
+              </>
+            )}
+
+            {/* Show respond/chat only for Vendors */}
+            {user?.role === 'vendor' && (
+              <>
+                <button
+                  onClick={() => navigate(`/vendor/chat/${planner.userId?._id || planner.name?._id}`)}
+                  className="px-6 py-3 bg-rosegold dark:bg-goldAccent text-white dark:text-black font-semibold text-xs uppercase tracking-widest rounded-2xl shadow hover:opacity-90 flex items-center space-x-1.5 transition-all"
+                >
+                  <FiMessageSquare className="w-4 h-4" />
+                  <span>Send Inquiries</span>
+                </button>
+                <button
+                  onClick={() => {
+                    toast.success("Respond request sent! Planner notified.");
+                  }}
+                  className="px-6 py-3 bg-transparent border border-rosegold dark:border-goldAccent text-rosegold dark:text-goldAccent font-semibold text-xs uppercase tracking-widest rounded-2xl hover:bg-rosegold/5 transition-all"
+                >
+                  Respond to Planner Requests
+                </button>
+              </>
+            )}
+
+            {/* Read-only fallback or Planner self view */}
+            {user?.role === 'planner' && (
+              <span className="text-xs font-semibold text-darktext/50 italic">
+                Viewing public profile preview mode.
+              </span>
+            )}
+          </div>
+
+          {/* Specialties & Services Offered */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <button
-              onClick={() => setIsMeetingOpen(true)}
-              className="px-6 py-2.5 bg-transparent border border-rosegold dark:border-goldAccent text-rosegold dark:text-goldAccent font-semibold text-xs uppercase tracking-widest rounded hover:bg-rosegold/5 transition-all"
-            >
-              Book Consultation
-            </button>
-
-            <button
-              onClick={() => setIsHireOpen(true)}
-              className="px-6 py-2.5 bg-[#4A403A] text-white font-semibold text-xs uppercase tracking-widest rounded shadow hover:bg-opacity-95"
-            >
-              Hire Planner
-            </button>
-          </div>
-
-          {/* Awards and Honours */}
-          <div className="space-y-4">
-            <div>
+            {/* Specialiazations */}
+            <div className="p-6 border border-rosegold/20 rounded-3xl bg-cream/5 space-y-4">
               <h3 className="text-sm font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent font-playfair flex items-center">
-                <FiAward className="mr-2" /> Recognition & Specializations
+                <FiAward className="mr-2 text-rosegold" /> Specializations
               </h3>
-              <div className="h-px bg-rosegold/20 dark:bg-goldAccent/20 w-32 mt-1.5" />
+              <div className="flex flex-wrap gap-2">
+                {specializationsList.map((spec) => (
+                  <span key={spec} className="px-3 py-1.5 bg-rosegold/5 border border-rosegold/10 text-darktext/80 rounded-xl text-[10px] font-bold">
+                    {spec}
+                  </span>
+                ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl border border-rosegold/25 bg-cream/15 dark:bg-darkcard/40 flex items-start space-x-3">
-                <div className="text-goldAccent text-lg">✦</div>
-                <div>
-                  <h4 className="text-xs font-bold text-darktext dark:text-white font-playfair">Best Luxury Planner Award</h4>
-                  <p className="text-[10px] text-darktext/60 dark:text-gray-400 mt-0.5 leading-relaxed font-light">Honored by the Wedding Curation Forum in 2025 for destination management.</p>
-                </div>
-              </div>
-              <div className="p-4 rounded-2xl border border-rosegold/25 bg-cream/15 dark:bg-darkcard/40 flex items-start space-x-3">
-                <div className="text-goldAccent text-lg">✦</div>
-                <div>
-                  <h4 className="text-xs font-bold text-darktext dark:text-white font-playfair">Floral Scenography Specialization</h4>
-                  <p className="text-[10px] text-darktext/60 dark:text-gray-400 mt-0.5 leading-relaxed font-light">Expertise in architectural floral arches, centerpieces, and traditional garlands.</p>
-                </div>
+            {/* Services */}
+            <div className="p-6 border border-rosegold/20 rounded-3xl bg-cream/5 space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent font-playfair flex items-center">
+                <FiCompass className="mr-2 text-rosegold" /> Services Offered
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {servicesList.map((service) => (
+                  <span key={service} className="px-3 py-1.5 bg-rosegold/5 border border-rosegold/10 text-darktext/80 rounded-xl text-[10px] font-bold">
+                    {service}
+                  </span>
+                ))}
               </div>
             </div>
+
           </div>
 
-          {/* Pinterest-style Masonry Gallery */}
+          {/* Past Events Portfolio Grid */}
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-rosegold/20 dark:border-goldAccent/15 pb-2">
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent font-playfair">
-                  Wedding Portfolio
+                  Past Events Portfolio
                 </h3>
-                <p className="text-[9px] text-darktext/50">Large wedding image galleries</p>
+                <p className="text-[10px] text-darktext/50">Showcasing completed dream weddings</p>
               </div>
 
-              {/* Category selector pills */}
-              <div className="flex flex-wrap gap-2 justify-center">
-                {portfolioCategories.map((cat) => (
+              {/* Event types category selector */}
+              <div className="flex flex-wrap gap-1.5">
+                {eventTypes.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setPortfolioFilter(cat)}
@@ -362,9 +496,76 @@ export const PlannerProfile = () => {
               </div>
             </div>
 
-            {/* Masonry Layout Grid */}
-            <div className="columns-1 sm:columns-2 md:columns-3 gap-4 space-y-4">
-              {selectedImages.map((imgUrl, index) => (
+            {/* Events Cards */}
+            {filteredEvents.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredEvents.map((ev, index) => (
+                  <div key={index} className="rounded-3xl border border-rosegold/20 bg-white dark:bg-darkcard overflow-hidden shadow-sm flex flex-col justify-between">
+                    
+                    {/* Event Images Row (shows first or multiple if exists) */}
+                    <div className="relative h-48 bg-cream/10">
+                      <img 
+                        src={ev.gallery?.[0] || "https://images.unsplash.com/photo-1519225495810-7517c300ea97?q=80&w=600"} 
+                        alt={ev.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-3 right-3 px-2.5 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] font-bold text-white uppercase tracking-widest">
+                        {ev.eventType || 'Wedding'}
+                      </div>
+                    </div>
+
+                    <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-extrabold text-darktext dark:text-white font-playfair">
+                          {ev.name}
+                        </h4>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-[10px] text-darktext/60">
+                          <span className="flex items-center"><FiMapPin className="mr-1 text-rosegold" /> {ev.venue}</span>
+                          <span className="flex items-center"><FiCalendar className="mr-1 text-rosegold" /> {new Date(ev.date).toLocaleDateString()}</span>
+                          <span className="flex items-center font-bold text-rosegold dark:text-goldAccent">Budget: ₹{ev.budget?.toLocaleString() || "7,500,000"}</span>
+                          <span className="flex items-center"><FiSmile className="mr-1 text-rosegold" /> {ev.guestCount} Guests</span>
+                        </div>
+                      </div>
+
+                      {/* Client Feedback */}
+                      {ev.clientFeedback && (
+                        <div className="p-3 bg-cream/20 dark:bg-black/25 rounded-2xl border border-rosegold/10 italic text-[11px] text-darktext/75">
+                          "{ev.clientFeedback}"
+                        </div>
+                      )}
+
+                      {/* Collaborating Vendors */}
+                      {ev.vendorsCollaborated?.length > 0 && (
+                        <div className="pt-2 border-t border-rosegold/10 text-[9px]">
+                          <span className="font-bold uppercase tracking-wider text-rosegold block mb-1">Vendors Collaborated</span>
+                          <div className="flex flex-wrap gap-1">
+                            {ev.vendorsCollaborated.map((v, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-rosegold/5 rounded border border-rosegold/10 text-darktext/65">
+                                {v}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-cream/10 border border-dashed border-rosegold/30 rounded-3xl text-xs text-darktext/50">
+                <p>No weddings logged under "{portfolioFilter}" yet.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Portfolio Masonry Gallery */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent font-playfair flex items-center">
+              <FiGrid className="mr-2 text-rosegold" /> Inspiration Portfolio Gallery
+            </h3>
+            <div className="columns-2 sm:columns-3 gap-4 space-y-4">
+              {galleryImages.map((imgUrl, index) => (
                 <div
                   key={index}
                   onClick={() => setActiveLightbox({ url: imgUrl })}
@@ -372,11 +573,11 @@ export const PlannerProfile = () => {
                 >
                   <img
                     src={imgUrl}
-                    alt={`wedding-portfolio-${index}`}
+                    alt={`gallery-inspiration-${index}`}
                     className="w-full object-cover group-hover:scale-102 transition-transform duration-500 rounded-2xl"
                   />
-                  <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="text-[9px] font-bold text-white uppercase tracking-widest bg-rosegold/90 dark:bg-goldAccent dark:text-black px-3 py-1.5 rounded-full shadow border border-white/20">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-[9px] font-bold text-white uppercase tracking-widest bg-rosegold/90 dark:bg-goldAccent dark:text-black px-3.5 py-2 rounded-full shadow border border-white/20">
                       Zoom Image
                     </span>
                   </div>
@@ -385,32 +586,41 @@ export const PlannerProfile = () => {
             </div>
           </div>
 
-          {/* Testimonials */}
-          <div className="space-y-4">
+          {/* Reviews & Client Ratings */}
+          <div className="space-y-5">
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent font-playfair">
-                Testimonials
+              <h3 className="text-sm font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent font-playfair flex items-center">
+                <FiSmile className="mr-2 text-rosegold" /> Reviews & Testimonials
               </h3>
-              <div className="h-px bg-rosegold/20 w-24 mt-1.5" />
+              <div className="h-px bg-rosegold/20 w-32 mt-1.5" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {reviews.length > 0 ? (
-                reviews.slice(0, 2).map((rev, idx) => (
-                  <div key={idx} className="p-5 rounded-2xl border border-rosegold/20 bg-cream/10 dark:bg-darkcard/40 flex flex-col justify-between space-y-3">
-                    <p className="text-xs text-darktext/75 dark:text-gray-450 italic leading-relaxed">
+                reviews.map((rev, idx) => (
+                  <div key={idx} className="p-5 rounded-2xl border border-rosegold/20 bg-white dark:bg-darkcard/50 flex flex-col justify-between space-y-3 shadow-sm">
+                    <div className="flex justify-between items-center pb-2 border-b border-rosegold/10">
+                      <span className="text-[10px] font-bold text-darktext dark:text-white font-playfair">{rev.clientName}</span>
+                      <div className="flex items-center text-amber-500 space-x-0.5">
+                        {[...Array(rev.rating)].map((_, i) => (
+                          <FiStar key={i} className="fill-current w-3.5 h-3.5" />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-darktext/75 dark:text-gray-405 italic leading-relaxed">
                       "{rev.text}"
                     </p>
-                    <div className="flex items-center space-x-2 pt-2 border-t border-rosegold/10">
-                      <div className="w-6 h-6 rounded-full bg-rosegold text-white flex items-center justify-center font-bold text-[10px]">
-                        {rev.clientName?.charAt(0)}
+                    {rev.verified && (
+                      <div className="pt-1 flex justify-end">
+                        <span className="text-[8px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold uppercase px-2 py-0.5 rounded-full border border-emerald-500/25">
+                          Verified review
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold text-darktext dark:text-white font-playfair">{rev.clientName}</span>
-                    </div>
+                    )}
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-darktext/50 italic col-span-2">No testimonial statements registered yet.</p>
+                <p className="text-xs text-darktext/50 italic col-span-2">No testimonial reviews registered yet.</p>
               )}
             </div>
           </div>
@@ -642,9 +852,9 @@ export const PlannerProfile = () => {
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 };
 
 export default PlannerProfile;
+

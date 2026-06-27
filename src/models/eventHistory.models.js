@@ -14,7 +14,10 @@ const eventHistorySchema = new mongoose.Schema({
   status: { type: String, default: 'Completed' },
   role: { type: String, default: 'Lead Planner' },
   gallery: [{ type: String }],
-  rating: { type: Number, default: 5 }
+  rating: { type: Number, default: 5 },
+  eventType: { type: String, default: 'Wedding' },
+  clientFeedback: { type: String, default: '' },
+  vendorsCollaborated: [{ type: String }]
 }, {
   timestamps: true
 });

@@ -20,6 +20,26 @@ const userSchema = new mongoose.Schema({
   phoneNo:{
     type:String,
     required:true
+  },
+  plan:{
+    type:String,
+    default:"Free"
+  },
+  planStartDate:{
+    type:Date,
+    default:Date.now
+  },
+  planEndDate:{
+    type:Date
+  },
+  subscriptionStatus:{
+    type:String,
+    default:"active",
+    enum:["active","expired","cancelled"]
+  },
+  autoRenew:{
+    type:Boolean,
+    default:true
   }
 },{
   timestamps: true

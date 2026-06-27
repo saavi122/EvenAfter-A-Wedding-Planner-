@@ -12,31 +12,19 @@ export const getChatMessages = asyncHandler(async (req, res) => {
     const senderId = req.user._id;
 
     // Find the receiver user
-    let receiverQuery = {};
-    if (receiverId.match(/^[0-9a-fA-F]{24}$/)) {
-        receiverQuery = { _id: receiverId };
-    } else {
-        // Look up by plannerId or clientId if receiverId is user friendly string
-        // Let's fallback to checking user by ID or username
-        receiverQuery = { _id: receiverId };
-    }
-
-    const receiver = await User.findOne(receiverQuery);
+    const receiver = await User.findById(receiverId);
     if (!receiver) {
         throw new ApiError(404, "Recipient user not found");
     }
 
-    // Find all messages between sender and receiver
-    const messages = await ChatMessage.find({
-        $or: [
-            { sender: senderId, receiver: receiver._id },
-            { sender: receiver._id, receiver: senderId }
-        ]
-    }).sort({ createdAt: 1 });
+    const conversationId = [senderId.toString(), receiver._id.toString()].sort().join("_");
+
+    // Find all messages in this conversation
+    const messages = await ChatMessage.find({ conversationId }).sort({ createdAt: 1 });
 
     // Mark received messages as read
     await ChatMessage.updateMany(
-        { sender: receiver._id, receiver: senderId, read: false },
+        { conversationId, sender: receiver._id, receiver: senderId, read: false },
         { $set: { read: true } }
     );
 
@@ -54,21 +42,17 @@ export const sendChatMessage = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Cannot send empty message");
     }
 
-    let receiverQuery = {};
-    if (receiverId.match(/^[0-9a-fA-F]{24}$/)) {
-        receiverQuery = { _id: receiverId };
-    } else {
-        receiverQuery = { _id: receiverId };
-    }
-
-    const receiver = await User.findOne(receiverQuery);
+    const receiver = await User.findById(receiverId);
     if (!receiver) {
         throw new ApiError(404, "Recipient user not found");
     }
 
+    const conversationId = [senderId.toString(), receiver._id.toString()].sort().join("_");
+
     const chatMsg = await ChatMessage.create({
         sender: senderId,
         receiver: receiver._id,
+        conversationId,
         message,
         image,
         file,
@@ -77,11 +61,15 @@ export const sendChatMessage = asyncHandler(async (req, res) => {
 
     const io = req.app.get("io");
     if (io) {
-        io.to(receiver._id.toString()).emit("messageReceived", chatMsg);
+        // Emit to room conversationId
+        io.to(conversationId).emit("receiveMessage", chatMsg);
+        
+        // Also emit notification to the receiver's private room
         io.to(receiver._id.toString()).emit("notification", {
             type: "message",
             sender: senderId,
-            message: message || "Sent an attachment"
+            message: message || "Sent an attachment",
+            conversationId
         });
     }
 
@@ -128,6 +116,7 @@ export const getConversations = asyncHandler(async (req, res) => {
         conversations.push({
             user: partnerUser,
             profile,
+            conversationId: [userId.toString(), partnerId.toString()].sort().join("_"),
             lastMessage: lastMsg.message,
             lastMessageTime: lastMsg.createdAt,
             unreadCount: await ChatMessage.countDocuments({

@@ -38,6 +38,7 @@ const Navbar = () => {
   const navLinks = [
     { label: 'Home', id: 'home', to: '/' },
     { label: 'Features', id: 'features', to: '/#features' },
+    { label: 'Pricing', id: 'pricing', to: '/pricing', isPage: true },
     { label: 'About', id: 'about', to: '/#about' },
     { label: 'Contact', id: 'contact', to: '/#contact' },
   ];
@@ -72,17 +73,31 @@ const Navbar = () => {
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
             {navLinks.map((link) => (
-              <button
-                key={link.label}
-                onClick={() => handleScrollTo(link.id)}
-                className={`text-sm font-medium tracking-wider uppercase transition-colors duration-500 ${
-                  isTransparent
-                    ? 'text-white/95 hover:text-champagne drop-shadow-sm'
-                    : 'text-darktext/80 dark:text-gray-300 hover:text-rosegold dark:hover:text-goldAccent'
-                }`}
-              >
-                {link.label}
-              </button>
+              link.isPage ? (
+                <Link
+                  key={link.label}
+                  to={link.to}
+                  className={`text-sm font-medium tracking-wider uppercase transition-colors duration-500 ${
+                    isTransparent
+                      ? 'text-white/95 hover:text-champagne drop-shadow-sm'
+                      : 'text-darktext/80 dark:text-gray-300 hover:text-rosegold dark:hover:text-goldAccent'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <button
+                  key={link.label}
+                  onClick={() => handleScrollTo(link.id)}
+                  className={`text-sm font-medium tracking-wider uppercase transition-colors duration-500 ${
+                    isTransparent
+                      ? 'text-white/95 hover:text-champagne drop-shadow-sm'
+                      : 'text-darktext/80 dark:text-gray-300 hover:text-rosegold dark:hover:text-goldAccent'
+                  }`}
+                >
+                  {link.label}
+                </button>
+              )
             ))}
           </div>
 
@@ -129,13 +144,24 @@ const Navbar = () => {
         <div className="md:hidden bg-ivory dark:bg-darkbg border-b border-rosegold/10 dark:border-goldAccent/10 py-4 transition-colors duration-300">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 flex flex-col items-center">
             {navLinks.map((link) => (
-              <button
-                key={link.label}
-                onClick={() => handleScrollTo(link.id)}
-                className="block w-full text-center px-3 py-3 text-sm font-medium tracking-wider text-darktext/80 dark:text-gray-300 hover:text-rosegold dark:hover:text-goldAccent transition-colors uppercase border-b border-rosegold/5 last:border-b-0"
-              >
-                {link.label}
-              </button>
+              link.isPage ? (
+                <Link
+                  key={link.label}
+                  to={link.to}
+                  onClick={() => setIsOpen(false)}
+                  className="block w-full text-center px-3 py-3 text-sm font-medium tracking-wider text-darktext/80 dark:text-gray-300 hover:text-rosegold dark:hover:text-goldAccent transition-colors uppercase border-b border-rosegold/5 last:border-b-0"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <button
+                  key={link.label}
+                  onClick={() => handleScrollTo(link.id)}
+                  className="block w-full text-center px-3 py-3 text-sm font-medium tracking-wider text-darktext/80 dark:text-gray-300 hover:text-rosegold dark:hover:text-goldAccent transition-colors uppercase border-b border-rosegold/5 last:border-b-0"
+                >
+                  {link.label}
+                </button>
+              )
             ))}
           </div>
         </div>

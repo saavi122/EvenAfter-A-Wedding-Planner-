@@ -18,6 +18,8 @@ import timelineRouter from './routes/timeline.routes.js';
 import documentRouter from './routes/document.routes.js';
 import notificationRouter from './routes/notification.routes.js';
 import adminRouter from './routes/admin.routes.js';
+import invoiceRouter from './routes/invoice.routes.js';
+import aiRouter from './routes/ai.routes.js';
 
 const app = express();
 
@@ -45,6 +47,8 @@ app.use("/api/timelines", timelineRouter);
 app.use("/api/documents", documentRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/invoices", invoiceRouter);
+app.use("/api/ai", aiRouter);
 
 // Global Error Handler
 app.use(errorMiddleware);

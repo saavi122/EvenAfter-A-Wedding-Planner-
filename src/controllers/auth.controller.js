@@ -5,6 +5,7 @@ import Client from "../models/client.models.js";
 import Planner from "../models/planner.models.js";
 import Vendor from "../models/vendor.models.js";
 import Portfolio from "../models/portfolio.models.js";
+import Invoice from "../models/invoice.models.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -18,7 +19,7 @@ const generateToken = (userId) => {
 };
 
 export const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, phone, password, role } = req.body;
+    const { name, email, phone, password, role, plan } = req.body;
 
     if (!name || !email || !phone || !password || !role) {
         throw new ApiError(400, "All fields (name, email, phone, password, role) are required");
@@ -29,6 +30,26 @@ export const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User with this email already exists");
     }
 
+    // Determine initial subscription plan
+    let initialPlan = plan || "Free";
+    let planStartDate = new Date();
+    let planEndDate = null;
+
+    // Check if there is an existing guest invoice for this email
+    const guestInvoice = await Invoice.findOne({ userEmail: email }).sort({ createdAt: -1 });
+    if (guestInvoice) {
+        initialPlan = guestInvoice.planName;
+        planStartDate = guestInvoice.createdAt;
+        const isYearly = guestInvoice.planName.toLowerCase().includes('year') || guestInvoice.totalAmount > 5000;
+        const durationDays = isYearly ? 365 : 30;
+        planEndDate = new Date(planStartDate);
+        planEndDate.setDate(planEndDate.getDate() + durationDays);
+    } else if (initialPlan !== "Free") {
+        const durationDays = initialPlan.toLowerCase().includes('year') ? 365 : 30;
+        planEndDate = new Date();
+        planEndDate.setDate(planEndDate.getDate() + durationDays);
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -37,8 +58,18 @@ export const registerUser = asyncHandler(async (req, res) => {
         email,
         phoneNo: phone,
         password: hashedPassword,
-        role
+        role,
+        plan: initialPlan,
+        planStartDate,
+        planEndDate,
+        subscriptionStatus: "active"
     });
+
+    // If a guest invoice was found, associate it with the new user's ID
+    if (guestInvoice) {
+        guestInvoice.userId = user._id;
+        await guestInvoice.save();
+    }
 
     // Create role-specific documents
     if (role === "client") {
@@ -193,5 +224,17 @@ export const getUserById = asyncHandler(async (req, res) => {
 
     return res.status(200).json(
         new ApiResponse(200, { user: userDetail, profile }, "User profile retrieved successfully")
+    );
+});
+
+export const toggleAutoRenew = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+    user.autoRenew = !user.autoRenew;
+    await user.save();
+    return res.status(200).json(
+        new ApiResponse(200, { autoRenew: user.autoRenew }, "Auto-renew status toggled successfully")
     );
 });

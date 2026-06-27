@@ -11,6 +11,10 @@ const chatMessageSchema = new mongoose.Schema({
     ref: 'user',
     required: true
   },
+  conversationId: {
+    type: String,
+    index: true
+  },
   message: { type: String },
   image: { type: String },
   file: { type: String },

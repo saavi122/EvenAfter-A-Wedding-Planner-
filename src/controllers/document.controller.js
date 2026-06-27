@@ -44,10 +44,17 @@ export const getMyDocuments = asyncHandler(async (req, res) => {
 
 // Upload a document
 export const uploadDocument = asyncHandler(async (req, res) => {
-    const { name, type, size, eventId } = req.body;
+    // If a file is uploaded via Multer, read details from req.file
+    const file = req.file;
+    const name = file ? file.originalname : req.body.name;
+    const type = file ? file.mimetype : req.body.type;
+    const size = file ? file.size : req.body.size;
+    const url = file ? `/uploads/${file.filename}` : req.body.url || "#";
+    
+    const { eventId } = req.body;
 
     if (!name || !type || !size) {
-        throw new ApiError(400, "Document metadata (name, type, size) is required");
+        throw new ApiError(400, "Document metadata (name, type, size) or a valid file upload is required");
     }
 
     let targetEventId = eventId;
@@ -68,7 +75,7 @@ export const uploadDocument = asyncHandler(async (req, res) => {
         name,
         type,
         size,
-        url: "#", // Mock download link
+        url,
         uploadedBy: req.user._id
     });
 

@@ -88,123 +88,202 @@ export const DirectChat = () => {
   useEffect(() => {
     if (!user?._id) return;
 
-    // Connect to backend server socket
+    // Connect to backend server socket with JWT authentication token
+    const token = localStorage.getItem('token');
     const socket = io(window.location.origin, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      auth: { token },
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000
     });
     socketRef.current = socket;
 
-    // Join room
-    socket.emit("join", user._id);
+    // Register active user session and rejoin rooms on connection (including automatic reconnection)
+    socket.on("connect", () => {
+      console.log("Socket connected, registering user session and rejoining active chat room");
+      socket.emit("joinUser", user._id);
+      
+      if (plannerId && plannerId !== 'list') {
+        const conversationId = [user._id, plannerId].sort().join("_");
+        socket.emit("joinConversation", conversationId);
+        socket.emit("messageSeen", { conversationId, receiverId: user._id });
+      }
+    });
 
-    // Listen for new messages
-    socket.on("messageReceived", (newMsg) => {
-      if (newMsg.sender === plannerId) {
+    // Handle connection authentication errors to prevent infinite reconnect loops
+    socket.on("connect_error", (err) => {
+      console.error("Socket connection error:", err.message);
+      if (err.message.includes("Authentication error")) {
+        socket.disconnect();
+      }
+    });
+
+    // Listen for the online users list
+    socket.on("onlineUsers", (usersList) => {
+      setOnlineUsers(new Set(usersList));
+    });
+
+    // Listen for incoming messages
+    socket.on("receiveMessage", (newMsg) => {
+      const currentConvId = [user._id, plannerId].sort().join("_");
+      
+      if (newMsg.conversationId === currentConvId) {
         queryClient.setQueryData(['messages', plannerId], (old) => {
           const list = old || [];
           if (list.some(m => m._id === newMsg._id)) return list;
           return [...list, newMsg];
         });
-        // Invalidate conversation list to update last message/unread count
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      } else {
-        // Trigger notification check or conversation list reload
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      }
-    });
 
-    // Listen for typing indicator
-    socket.on("typingStatus", ({ senderId, isTyping }) => {
-      if (senderId === plannerId) {
-        setPartnerTyping(isTyping);
-      }
-    });
-
-    // Listen for online status updates
-    socket.on("userOnlineStatus", ({ userId, status }) => {
-      setOnlineUsers(prev => {
-        const next = new Set(prev);
-        if (status === "online") {
-          next.add(userId);
-        } else {
-          next.delete(userId);
+        // Mark message as seen since the conversation is currently open
+        if (newMsg.sender !== user._id) {
+          socket.emit("messageSeen", { conversationId: currentConvId, messageId: newMsg._id, receiverId: user._id });
         }
-        return next;
-      });
+      }
+      
+      // Invalidate conversation list to update last message preview and unread counts
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    });
+
+    // Listen for partner typing indicator status
+    socket.on("typing", ({ senderId }) => {
+      if (senderId === plannerId) {
+        setPartnerTyping(true);
+      }
+    });
+
+    socket.on("stopTyping", ({ senderId }) => {
+      if (senderId === plannerId) {
+        setPartnerTyping(false);
+      }
+    });
+
+    // Listen for read receipts (messageSeen)
+    socket.on("messageSeen", ({ conversationId, messageId, receiverId }) => {
+      const currentConvId = [user._id, plannerId].sort().join("_");
+      if (conversationId === currentConvId) {
+        queryClient.setQueryData(['messages', plannerId], (old) => {
+          const list = old || [];
+          return list.map(msg => {
+            if (messageId) {
+              if (msg._id === messageId) return { ...msg, read: true };
+            } else {
+              if (msg.sender !== receiverId) return { ...msg, read: true };
+            }
+            return msg;
+          });
+        });
+      }
     });
 
     return () => {
+      socket.off("connect");
+      socket.off("connect_error");
+      socket.off("onlineUsers");
+      socket.off("receiveMessage");
+      socket.off("typing");
+      socket.off("stopTyping");
+      socket.off("messageSeen");
       socket.disconnect();
     };
   }, [user?._id, plannerId, queryClient]);
 
-  // Broadcast typing indicator
+  // Handle room joining / leaving and read status on partner (plannerId) change
   useEffect(() => {
-    if (!socketRef.current || !plannerId || plannerId === 'list') return;
+    const socket = socketRef.current;
+    if (!socket || !user?._id || !plannerId || plannerId === 'list') return;
 
-    const isCurrentlyTyping = typedMessage.trim().length > 0;
-    socketRef.current.emit("typing", {
-      senderId: user._id,
-      receiverId: plannerId,
-      isTyping: isCurrentlyTyping
-    });
-  }, [typedMessage, plannerId, user?._id]);
+    const conversationId = [user._id, plannerId].sort().join("_");
+
+    // Join conversation room
+    socket.emit("joinConversation", conversationId);
+
+    // Mark existing messages as read
+    socket.emit("messageSeen", { conversationId, receiverId: user._id });
+
+    return () => {
+      // Leave previous conversation room
+      socket.emit("leaveConversation", conversationId);
+    };
+  }, [plannerId, user?._id, socketRef.current]);
+
+  // Broadcast typing/stopTyping indicators with a 2-second debounce
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !plannerId || plannerId === 'list') return;
+
+    const conversationId = [user._id, plannerId].sort().join("_");
+
+    if (typedMessage.trim().length > 0) {
+      if (!typing) {
+        setTyping(true);
+        socket.emit("typing", { conversationId, senderId: user._id });
+      }
+
+      const delayDebounce = setTimeout(() => {
+        setTyping(false);
+        socket.emit("stopTyping", { conversationId, senderId: user._id });
+      }, 2000);
+
+      return () => clearTimeout(delayDebounce);
+    } else {
+      if (typing) {
+        setTyping(false);
+        socket.emit("stopTyping", { conversationId, senderId: user._id });
+      }
+    }
+  }, [typedMessage, plannerId, user?._id, typing]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, partnerTyping]);
 
-  // Send Message Mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageData) => {
-      const res = await fetch(`/api/chat/${plannerId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(messageData)
-      });
-      const result = await res.json();
-      if (!res.ok || !result.success) throw new Error('Failed to send message');
-      return result.data;
-    },
-    onSuccess: (newMessage) => {
-      setTypedMessage('');
-      // Optimistically append message
-      queryClient.setQueryData(['messages', plannerId], (old) => [...(old || []), newMessage]);
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-
-      // Emit over socket
-      if (socketRef.current) {
-        socketRef.current.emit("sendMessage", {
-          sender: user._id,
-          receiver: plannerId,
-          message: newMessage.message,
-          image: newMessage.image,
-          file: newMessage.file,
-          _id: newMessage._id,
-          createdAt: newMessage.createdAt
-        });
-      }
-    }
-  });
-
   const handleSend = (e) => {
     e.preventDefault();
-    if (!typedMessage.trim()) return;
-    sendMessageMutation.mutate({ message: typedMessage });
+    if (!typedMessage.trim() || !socketRef.current) return;
+
+    const conversationId = [user._id, plannerId].sort().join("_");
+
+    socketRef.current.emit("sendMessage", {
+      conversationId,
+      senderId: user._id,
+      receiverId: plannerId,
+      text: typedMessage
+    });
+
+    setTypedMessage('');
+    setTyping(false);
+    socketRef.current.emit("stopTyping", { conversationId, senderId: user._id });
   };
 
   const handleAttachImage = () => {
     const imageUrl = prompt("Enter a wedding concept image URL to share:", "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=600");
-    if (!imageUrl) return;
-    sendMessageMutation.mutate({ message: "Concept Photo:", image: imageUrl });
+    if (!imageUrl || !socketRef.current) return;
+    
+    const conversationId = [user._id, plannerId].sort().join("_");
+    socketRef.current.emit("sendMessage", {
+      conversationId,
+      senderId: user._id,
+      receiverId: plannerId,
+      text: "Concept Photo:",
+      image: imageUrl
+    });
     setAttachmentOpen(false);
   };
 
   const handleAttachFile = () => {
     const fileName = prompt("Enter document filename to upload:", "Wedding_Catering_Invoice.pdf");
-    if (!fileName) return;
-    sendMessageMutation.mutate({ message: `Attached Document: ${fileName}`, file: fileName });
+    if (!fileName || !socketRef.current) return;
+    
+    const conversationId = [user._id, plannerId].sort().join("_");
+    socketRef.current.emit("sendMessage", {
+      conversationId,
+      senderId: user._id,
+      receiverId: plannerId,
+      text: `Attached Document: ${fileName}`,
+      file: fileName
+    });
     setAttachmentOpen(false);
   };
 
@@ -447,7 +526,7 @@ export const DirectChat = () => {
 
                 <motion.button
                   type="submit"
-                  disabled={!typedMessage.trim() || sendMessageMutation.isPending}
+                  disabled={!typedMessage.trim()}
                   className="p-3.5 bg-gradient-to-r from-accent to-primary text-slate-950 rounded-2xl shadow-lg shadow-accent/20 flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

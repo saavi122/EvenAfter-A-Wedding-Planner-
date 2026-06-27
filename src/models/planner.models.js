@@ -82,6 +82,51 @@ const plannerSchema = new mongoose.Schema({
   },
   profileImage:{
     type:String
+  },
+  citiesServed:[{
+    type:String
+  }],
+  happyClients:{
+    type:Number,
+    default:0
+  },
+  specializations:[{
+    type:String
+  }],
+  servicesOffered:[{
+    type:String
+  }],
+  profileViews:{
+    type:Number,
+    default:0
+  },
+  contactDetails:{
+    phone:{
+      type:String,
+      default:""
+    },
+    email:{
+      type:String,
+      default:""
+    },
+    website:{
+      type:String,
+      default:""
+    },
+    socials:{
+      instagram:{
+        type:String,
+        default:""
+      },
+      facebook:{
+        type:String,
+        default:""
+      },
+      linkedin:{
+        type:String,
+        default:""
+      }
+    }
   }
 });
 

@@ -3,6 +3,7 @@ import Planner from "../models/planner.models.js";
 import ShortlistedVendor from "../models/shortlistedVendor.models.js";
 import VendorAssignment from "../models/vendorAssignment.models.js";
 import Client from "../models/client.models.js";
+import User from "../models/user.models.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -37,7 +38,11 @@ export const getVendorById = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Vendor profile not found");
     }
 
-    // Mock previous event galleries and reviews for the vendor
+    // Increment profile view count
+    vendorDetail.profileViews = (vendorDetail.profileViews || 0) + 1;
+    await vendorDetail.save();
+
+    // Mock reviews
     const mockReviews = [
         { clientName: "Priya & Raj", rating: 5, text: "Absolutely stunning floral mandap decoration. Exceeded all expectations!", verified: true },
         { clientName: "Nikhil Verma", rating: 4, text: "Great food catering. The main course was highly appreciated by the guests.", verified: true }
@@ -48,13 +53,17 @@ export const getVendorById = asyncHandler(async (req, res) => {
         { name: "Kabir & Rhea's Sunset Vows", venue: "W Hotel Beach Front, Goa", date: "2026-01-05", role: "Floral Decor", rating: 5 }
     ];
 
+    const previousEvents = (vendorDetail.previousEvents && vendorDetail.previousEvents.length > 0)
+        ? vendorDetail.previousEvents
+        : mockPreviousEvents;
+
     return res.status(200).json(
         new ApiResponse(
             200, 
             { 
                 vendor: vendorDetail,
                 reviews: mockReviews,
-                previousEvents: mockPreviousEvents
+                previousEvents: previousEvents
             }, 
             "Vendor profile details retrieved"
         )
@@ -245,13 +254,53 @@ export const updateAssignmentStatus = asyncHandler(async (req, res) => {
     );
 });
 
+export const getVendorProfileMe = asyncHandler(async (req, res) => {
+    const vendor = await Vendor.findOne({ $or: [{ name: req.user._id }, { userId: req.user._id }] })
+        .populate("name", "name email phoneNo")
+        .populate("userId", "name email phoneNo");
+
+    if (!vendor) {
+        throw new ApiError(404, "Vendor profile not found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, vendor, "My vendor profile retrieved successfully")
+    );
+});
+
 // Update vendor profile (availability status, business name, etc.)
 export const updateVendorProfile = asyncHandler(async (req, res) => {
-    const { availabilityStatus, businessName, location, priceRange, servicesOffered } = req.body;
+    const {
+        name,
+        email,
+        phoneNo,
+        businessName,
+        availabilityStatus,
+        location,
+        priceRange,
+        servicesOffered,
+        experience,
+        contactDetails,
+        workingAreas,
+        description,
+        socialLinks,
+        packages,
+        vendorLogo,
+        coverImage,
+        vendorType
+    } = req.body;
 
-    const vendorProfile = await Vendor.findOne({ name: req.user._id });
+    const vendorProfile = await Vendor.findOne({ $or: [{ name: req.user._id }, { userId: req.user._id }] });
     if (!vendorProfile) {
         throw new ApiError(404, "Vendor profile not found");
+    }
+
+    const user = await User.findById(req.user._id);
+    if (user) {
+        if (name !== undefined) user.name = name;
+        if (email !== undefined) user.email = email;
+        if (phoneNo !== undefined) user.phoneNo = phoneNo;
+        await user.save();
     }
 
     if (availabilityStatus !== undefined) {
@@ -264,6 +313,15 @@ export const updateVendorProfile = asyncHandler(async (req, res) => {
     if (location !== undefined) vendorProfile.location = location;
     if (priceRange !== undefined) vendorProfile.priceRange = priceRange;
     if (servicesOffered !== undefined) vendorProfile.servicesOffered = servicesOffered;
+    if (experience !== undefined) vendorProfile.experience = experience;
+    if (contactDetails !== undefined) vendorProfile.contactDetails = contactDetails;
+    if (workingAreas !== undefined) vendorProfile.workingAreas = workingAreas;
+    if (description !== undefined) vendorProfile.description = description;
+    if (socialLinks !== undefined) vendorProfile.socialLinks = socialLinks;
+    if (packages !== undefined) vendorProfile.packages = packages;
+    if (vendorLogo !== undefined) vendorProfile.vendorLogo = vendorLogo;
+    if (coverImage !== undefined) vendorProfile.coverImage = coverImage;
+    if (vendorType !== undefined) vendorProfile.vendorType = vendorType;
 
     await vendorProfile.save();
 
@@ -276,7 +334,61 @@ export const updateVendorProfile = asyncHandler(async (req, res) => {
         });
     }
 
+    const updatedVendor = await Vendor.findById(vendorProfile._id)
+        .populate("name", "name email phoneNo")
+        .populate("userId", "name email phoneNo");
+
     return res.status(200).json(
-        new ApiResponse(200, vendorProfile, "Vendor profile updated successfully")
+        new ApiResponse(200, updatedVendor, "Vendor profile updated successfully")
+    );
+});
+
+export const addVendorEvent = asyncHandler(async (req, res) => {
+    const { name, eventType, plannerName, location, date, clientRating, images } = req.body;
+
+    const vendorProfile = await Vendor.findOne({ $or: [{ name: req.user._id }, { userId: req.user._id }] });
+    if (!vendorProfile) {
+        throw new ApiError(404, "Vendor profile not found");
+    }
+
+    if (!name || !eventType || !location || !date) {
+        throw new ApiError(400, "Event Name, Type, Location, and Date are required");
+    }
+
+    const newEvent = {
+        name,
+        eventType,
+        plannerName: plannerName || "",
+        location,
+        date: new Date(date),
+        clientRating: clientRating || 5,
+        images: images || []
+    };
+
+    vendorProfile.previousEvents.push(newEvent);
+    vendorProfile.completedEvents = (vendorProfile.completedEvents || 0) + 1;
+
+    await vendorProfile.save();
+
+    return res.status(201).json(
+        new ApiResponse(201, vendorProfile, "Vendor past event added successfully")
+    );
+});
+
+export const getVendorAnalytics = asyncHandler(async (req, res) => {
+    const vendorProfile = await Vendor.findOne({ $or: [{ name: req.user._id }, { userId: req.user._id }] });
+    if (!vendorProfile) {
+        throw new ApiError(404, "Vendor profile not found");
+    }
+
+    const analytics = {
+        profileViews: vendorProfile.profileViews || 95,
+        quoteRequests: vendorProfile.quoteRequests || 12,
+        bookingRequests: vendorProfile.bookingRequests || 8,
+        averageRating: Number(vendorProfile.rating) || 5.0
+    };
+
+    return res.status(200).json(
+        new ApiResponse(200, analytics, "Vendor analytics stats retrieved successfully")
     );
 });

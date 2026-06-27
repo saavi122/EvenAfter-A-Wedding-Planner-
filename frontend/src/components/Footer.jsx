@@ -34,6 +34,7 @@ const Footer = () => {
             <ul className="space-y-2 text-xs font-light tracking-wide">
               <li><a href="/#about" className="hover:text-rosegold dark:hover:text-goldAccent transition-colors">Our Heritage</a></li>
               <li><a href="/#features" className="hover:text-rosegold dark:hover:text-goldAccent transition-colors">Platform Features</a></li>
+              <li><Link to="/pricing" className="hover:text-rosegold dark:hover:text-goldAccent transition-colors">Pricing Plans</Link></li>
               <li><a href="/#contact" className="hover:text-rosegold dark:hover:text-goldAccent transition-colors">Book Consultation</a></li>
             </ul>
           </div>

@@ -257,3 +257,39 @@ export const deleteGalleryItem = asyncHandler(async (req, res) => {
     await Gallery.findByIdAndDelete(id);
     return res.status(200).json(new ApiResponse(200, {}, "Gallery item deleted"));
 });
+
+// 12. Override user subscription plan
+export const updateUserSubscription = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { plan, subscriptionStatus, durationDays } = req.body;
+
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (plan !== undefined) targetUser.plan = plan;
+    if (subscriptionStatus !== undefined) targetUser.subscriptionStatus = subscriptionStatus;
+
+    if (plan === 'Free') {
+        targetUser.planEndDate = null;
+    } else if (durationDays !== undefined) {
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + Number(durationDays));
+        targetUser.planEndDate = endDate;
+    } else {
+        // Default to 30 days if not set and changing to a paid plan
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 30);
+        targetUser.planEndDate = endDate;
+    }
+
+    targetUser.planStartDate = new Date();
+    await targetUser.save();
+
+    await logAction("Subscription Plan Overridden", req.user._id, `Overrode subscription plan for ${targetUser.email} to ${plan}`);
+
+    return res.status(200).json(
+        new ApiResponse(200, targetUser, "User subscription overridden successfully")
+    );
+});

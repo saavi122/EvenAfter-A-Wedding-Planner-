@@ -3,10 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiUsers, FiShield, FiTrendingUp, FiActivity, FiCheck, FiX, 
-  FiMail, FiPhone, FiTrash2, FiMessageSquare, FiCheckCircle, FiHeart, FiGift, FiAward, FiSettings 
+  FiMail, FiPhone, FiTrash2, FiMessageSquare, FiCheckCircle, FiHeart, FiGift, FiAward, FiSettings,
+  FiDollarSign, FiPrinter, FiDownload, FiSearch
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import weddingSetupImage from '../../assets/luxury_wedding_setup.png';
+
+const formatINR = (num) => new Intl.NumberFormat('en-IN').format(num || 0);
 
 export const AdminDashboard = () => {
   const { user } = useAuth();
@@ -22,6 +25,13 @@ export const AdminDashboard = () => {
   // Gallery form state
   const [galleryForm, setGalleryForm] = useState({ imageUrl: '', title: '', category: 'Ceremony' });
 
+  // Billing tab states
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [overrideForm, setOverrideForm] = useState({ plan: 'Free', subscriptionStatus: 'active', durationDays: 30 });
+  const [invoiceSearch, setInvoiceSearch] = useState('');
+  const [invoiceFilterStatus, setInvoiceFilterStatus] = useState('All');
+  const [billingSubTab, setBillingSubTab] = useState('invoices'); // 'invoices' or 'subscriptions'
+
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type }), 4000);
@@ -36,6 +46,174 @@ export const AdminDashboard = () => {
       return res.json();
     }
   });
+
+  // Fetch all admin invoices
+  const { data: adminInvoicesResponse, isLoading: adminInvoicesLoading } = useQuery({
+    queryKey: ['adminInvoices'],
+    queryFn: async () => {
+      const res = await fetch('/api/invoices/admin');
+      if (!res.ok) throw new Error('Failed to load admin invoices');
+      return res.json();
+    }
+  });
+  const adminInvoices = adminInvoicesResponse?.data || [];
+
+  // Fetch billing analytics
+  const { data: billingAnalyticsResponse, isLoading: billingAnalyticsLoading } = useQuery({
+    queryKey: ['billingAnalytics'],
+    queryFn: async () => {
+      const res = await fetch('/api/invoices/analytics');
+      if (!res.ok) throw new Error('Failed to load billing analytics');
+      return res.json();
+    }
+  });
+  const billingAnalytics = billingAnalyticsResponse?.data || {};
+
+  // Mutation to override user subscription plan
+  const updateSubscriptionMutation = useMutation({
+    mutationFn: async ({ userId, plan, subscriptionStatus, durationDays }) => {
+      const res = await fetch(`/api/admin/users/${userId}/subscription`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, subscriptionStatus, durationDays })
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.message || 'Failed to update subscription');
+      return result.data;
+    },
+    onSuccess: () => {
+      showToast("Subscription plan overridden successfully!", "success");
+      setEditingUserId(null);
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['billingAnalytics'] });
+      queryClient.invalidateQueries({ queryKey: ['adminInvoices'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    },
+    onError: (err) => {
+      showToast(err.message || "Failed to override subscription", "error");
+    }
+  });
+
+  const exportToCSV = (data) => {
+    if (!data || data.length === 0) return;
+    const headers = ["Invoice Number", "User Name", "Email", "Plan", "Amount Paid", "GST", "Total Amount", "Payment Method", "Date"];
+    const rows = data.map(inv => [
+      inv.invoiceNumber,
+      inv.userName,
+      inv.userEmail,
+      inv.planName,
+      inv.amountPaid,
+      inv.gst,
+      inv.totalAmount,
+      inv.paymentMethod,
+      new Date(inv.createdAt).toLocaleDateString()
+    ]);
+    
+    let csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(","), ...rows.map(e => e.map(val => `"${val}"`).join(","))].join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `EvenAfter_Invoices_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrintInvoice = (inv) => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice - ${inv.invoiceNumber}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #4A403A; line-height: 1.5; }
+            .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); font-size: 16px; color: #555; border-radius: 12px; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #C9A27E; padding-bottom: 20px; margin-bottom: 30px; }
+            .logo { font-size: 26px; font-weight: bold; color: #C9A27E; font-family: Georgia, serif; }
+            .title { font-size: 28px; font-weight: bold; text-align: right; color: #4A403A; }
+            .details-grid { display: grid; grid-template-cols: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
+            .details-block h4 { margin: 0 0 8px 0; color: #C9A27E; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+            .details-block p { margin: 0 0 5px 0; font-size: 14px; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+            .table th { background: #FAF7F2; color: #4A403A; font-weight: bold; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+            .table th, .table td { border: 1px solid #eee; padding: 12px; text-align: left; }
+            .table td { font-size: 14px; }
+            .totals { float: right; width: 300px; margin-top: 20px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+            .totals-row.grand-total { border-top: 2px double #C9A27E; font-size: 18px; font-weight: bold; color: #C9A27E; padding-top: 12px; }
+            .footer { text-align: center; margin-top: 80px; font-size: 11px; opacity: 0.6; border-top: 1px solid #eee; padding-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-box">
+            <div class="header">
+              <div>
+                <div class="logo">EvenAfter</div>
+                <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.8;">Premium Wedding Planner & Vendor Network</p>
+              </div>
+              <div class="title">INVOICE</div>
+            </div>
+            <div class="details-grid">
+              <div class="details-block">
+                <h4>Invoice Info</h4>
+                <p><strong>Invoice No:</strong> \${inv.invoiceNumber}</p>
+                <p><strong>Date & Time:</strong> \${new Date(inv.createdAt).toLocaleString()}</p>
+                <p><strong>Payment Status:</strong> <span style="color: #10B981; font-weight: bold;">PAID</span></p>
+              </div>
+              <div class="details-block" style="text-align: right;">
+                <h4>Billed To</h4>
+                <p><strong>Name:</strong> \${inv.userName}</p>
+                <p><strong>Phone:</strong> \${inv.userPhone}</p>
+                <p><strong>Email:</strong> \${inv.userEmail}</p>
+              </div>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Payment Method</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>\${inv.planName} Subscription Plan Activation</td>
+                  <td>\${inv.paymentMethod.toUpperCase()}</td>
+                  <td style="text-align: right;">₹\${new Intl.NumberFormat('en-IN').format(inv.amountPaid)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="width: 100%; overflow: hidden;">
+              <div class="totals">
+                <div class="totals-row">
+                  <span>Subtotal</span>
+                  <span>₹\${new Intl.NumberFormat('en-IN').format(inv.amountPaid)}</span>
+                </div>
+                <div class="totals-row">
+                  <span>GST (18%)</span>
+                  <span>₹\${new Intl.NumberFormat('en-IN').format(inv.gst)}</span>
+                </div>
+                <div class="totals-row grand-total">
+                  <span>Grand Total</span>
+                  <span>₹\${new Intl.NumberFormat('en-IN').format(inv.totalAmount)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="footer">
+              <p>This is a computer generated invoice and does not require a physical signature.</p>
+              <p>For any billing support, please reach out to support@evenafter.com</p>
+            </div>
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const { data: usersResponse, isLoading: usersLoading } = useQuery({
     queryKey: ['adminUsers'],
@@ -315,6 +493,7 @@ export const AdminDashboard = () => {
           { id: 'overview', label: 'Overview & Stats' },
           { id: 'users', label: 'Manage Users' },
           { id: 'vendors', label: 'Vendor Verifications' },
+          { id: 'billing', label: 'Billing & Subscriptions' },
           { id: 'broadcast', label: 'Global Broadcast' },
           { id: 'content', label: 'Homepage Curation' },
           { id: 'audit', label: 'Audit Logs' }
@@ -488,6 +667,372 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* BILLING & SUBSCRIPTIONS TAB */}
+          {activeTab === 'billing' && (
+            <div className="space-y-8 animate-fadeIn text-xs">
+              
+              {/* Revenue Stats & Plan breakdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="luxury-card rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 p-5 flex items-center space-x-4 shadow-sm">
+                  <div className="p-3 rounded-2xl text-emerald-600 bg-emerald-500/10 flex-shrink-0">
+                    <FiTrendingUp className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase font-bold tracking-wider text-darktext/60 dark:text-gray-400">Total Platform Revenue</p>
+                    <h3 className="text-xl font-bold font-playfair text-darktext dark:text-goldAccent mt-0.5">
+                      ₹{formatINR(billingAnalytics.totalRevenue || 0)}
+                    </h3>
+                    <p className="text-[10px] text-darktext/50 font-semibold mt-0.5">Sum of all payments</p>
+                  </div>
+                </div>
+
+                <div className="luxury-card rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 p-5 flex items-center space-x-4 shadow-sm">
+                  <div className="p-3 rounded-2xl text-amber-600 bg-amber-500/10 flex-shrink-0">
+                    <FiShield className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase font-bold tracking-wider text-darktext/60 dark:text-gray-400">Active Paid Subscriptions</p>
+                    <h3 className="text-xl font-bold font-playfair text-darktext dark:text-goldAccent mt-0.5">
+                      {billingAnalytics.activePaidSubscriptionsCount || 0}
+                    </h3>
+                    <p className="text-[10px] text-darktext/50 font-semibold mt-0.5">Paid accounts active</p>
+                  </div>
+                </div>
+
+                <div className="luxury-card rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 p-5 flex items-center space-x-4 shadow-sm">
+                  <div className="p-3 rounded-2xl text-rosegold bg-rosegold/10 flex-shrink-0">
+                    <FiUsers className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase font-bold tracking-wider text-darktext/60 dark:text-gray-400">Total Transactions</p>
+                    <h3 className="text-xl font-bold font-playfair text-darktext dark:text-goldAccent mt-0.5">
+                      {billingAnalytics.totalInvoicesCount || 0}
+                    </h3>
+                    <p className="text-[10px] text-darktext/50 font-semibold mt-0.5">Invoices recorded</p>
+                  </div>
+                </div>
+
+                <div className="luxury-card rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 p-5 flex flex-col justify-center shadow-sm">
+                  <p className="text-[9px] uppercase font-bold tracking-wider text-darktext/60 dark:text-gray-400 mb-1">Paid Plan Breakdowns</p>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-darktext/75 dark:text-gray-400 font-mono">
+                    <div>Pro Planners: <span className="font-bold text-rosegold dark:text-goldAccent">{billingAnalytics.planBreakdown?.['Pro Planner'] || 0}</span></div>
+                    <div>Premium Planners: <span className="font-bold text-rosegold dark:text-goldAccent">{billingAnalytics.planBreakdown?.['Premium Planner'] || 0}</span></div>
+                    <div>Pro Vendors: <span className="font-bold text-rosegold dark:text-goldAccent">{billingAnalytics.planBreakdown?.['Vendor Pro'] || 0}</span></div>
+                    <div>Elite Vendors: <span className="font-bold text-rosegold dark:text-goldAccent">{billingAnalytics.planBreakdown?.['Vendor Elite'] || 0}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sub tabs inside Billing */}
+              <div className="flex space-x-2 border-b border-rosegold/10 pb-2">
+                <button
+                  onClick={() => setBillingSubTab('invoices')}
+                  className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    billingSubTab === 'invoices'
+                      ? 'bg-rosegold dark:bg-goldAccent text-white dark:text-black'
+                      : 'bg-cream/20 text-darktext/75 dark:text-gray-400 hover:bg-cream/45'
+                  }`}
+                >
+                  Transaction Logs
+                </button>
+                <button
+                  onClick={() => setBillingSubTab('subscriptions')}
+                  className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    billingSubTab === 'subscriptions'
+                      ? 'bg-rosegold dark:bg-goldAccent text-white dark:text-black'
+                      : 'bg-cream/20 text-darktext/75 dark:text-gray-400 hover:bg-cream/45'
+                  }`}
+                >
+                  Active Subscriptions & Overrides
+                </button>
+              </div>
+
+              {/* TAB 1: TRANSACTION INVOICE LOGS */}
+              {billingSubTab === 'invoices' && (
+                <div className="luxury-card rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 p-6 shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent font-playfair">
+                      Platform Invoice Registry
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <input
+                        type="text"
+                        placeholder="Search invoices, emails, names..."
+                        value={invoiceSearch}
+                        onChange={(e) => setInvoiceSearch(e.target.value)}
+                        className="px-3 py-1.5 bg-cream/15 dark:bg-darkbg/35 border border-rosegold/20 dark:border-goldAccent/25 rounded-lg text-[10px] outline-none text-darktext dark:text-white focus:border-rosegold"
+                      />
+                      <select
+                        value={invoiceFilterStatus}
+                        onChange={(e) => setInvoiceFilterStatus(e.target.value)}
+                        className="px-3 py-1.5 bg-cream/15 dark:bg-darkbg/35 border border-rosegold/20 dark:border-goldAccent/25 rounded-lg text-[10px] outline-none text-darktext dark:text-white"
+                      >
+                        <option value="All">All Invoices</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                      <button
+                        onClick={() => exportToCSV(adminInvoices)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rosegold/10 border border-rosegold/20 text-rosegold hover:bg-rosegold/15 rounded-lg font-bold uppercase tracking-wider text-[9px]"
+                      >
+                        <FiDownload className="w-3.5 h-3.5" />
+                        <span>Export CSV</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {adminInvoicesLoading ? (
+                    <p className="text-center py-8 opacity-65">Loading invoice registry...</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-rosegold/15 opacity-60 text-[9px] uppercase font-bold tracking-wider">
+                            <th className="py-2.5 px-2">Invoice No</th>
+                            <th className="py-2.5 px-2">Billed To</th>
+                            <th className="py-2.5 px-2">Email</th>
+                            <th className="py-2.5 px-2">Plan Details</th>
+                            <th className="py-2.5 px-2">Amount Paid</th>
+                            <th className="py-2.5 px-2">Method</th>
+                            <th className="py-2.5 px-2">Date</th>
+                            <th className="py-2.5 px-2 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {adminInvoices
+                            .filter(inv => {
+                              const searchLower = invoiceSearch.toLowerCase();
+                              const matchesSearch = 
+                                inv.invoiceNumber.toLowerCase().includes(searchLower) ||
+                                inv.userName.toLowerCase().includes(searchLower) ||
+                                inv.userEmail.toLowerCase().includes(searchLower) ||
+                                inv.planName.toLowerCase().includes(searchLower);
+                              const matchesStatus = invoiceFilterStatus === 'All' || inv.paymentStatus === invoiceFilterStatus;
+                              return matchesSearch && matchesStatus;
+                            })
+                            .map((inv) => (
+                              <tr key={inv._id} className="border-b border-rosegold/5 hover:bg-cream/5 transition-colors text-[11px]">
+                                <td className="py-3 px-2 font-mono font-bold">{inv.invoiceNumber}</td>
+                                <td className="py-3 px-2 font-semibold font-playfair text-darktext dark:text-white">{inv.userName}</td>
+                                <td className="py-3 px-2 text-darktext/70 dark:text-gray-400">{inv.userEmail}</td>
+                                <td className="py-3 px-2 font-semibold text-rosegold dark:text-goldAccent">{inv.planName}</td>
+                                <td className="py-3 px-2 font-bold">₹{formatINR(inv.totalAmount)}</td>
+                                <td className="py-3 px-2 font-mono uppercase text-[9px]">{inv.paymentMethod}</td>
+                                <td className="py-3 px-2">{new Date(inv.createdAt).toLocaleDateString()}</td>
+                                <td className="py-3 px-2 text-right">
+                                  <button
+                                    onClick={() => handlePrintInvoice(inv)}
+                                    className="inline-flex items-center gap-1 text-rosegold dark:text-goldAccent hover:underline font-bold uppercase tracking-wider text-[9px]"
+                                  >
+                                    <FiPrinter className="w-3.5 h-3.5" />
+                                    <span>Print Receipt</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          {adminInvoices.length === 0 && (
+                            <tr>
+                              <td colSpan="8" className="py-8 text-center opacity-60 font-light">
+                                No invoice records found.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: ACTIVE PAID ACCOUNTS & OVERRIDES */}
+              {billingSubTab === 'subscriptions' && (
+                <div className="luxury-card rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 p-6 shadow-sm space-y-6">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent font-playfair mb-1">
+                      Active Paid Subscriptions & Plan Overrides
+                    </h3>
+                    <p className="text-[10px] text-darktext/50">
+                      Manage active premium memberships or manually override any user's plan.
+                    </p>
+                  </div>
+
+                  {billingAnalyticsLoading ? (
+                    <p className="text-center py-8 opacity-65">Loading subscription data...</p>
+                  ) : (
+                    <div className="space-y-6">
+                      
+                      {/* Subscription Overrides Form */}
+                      {editingUserId ? (
+                        <div className="p-4 rounded-2xl bg-cream/15 dark:bg-darkbg/35 border border-rosegold/15 dark:border-goldAccent/10 space-y-4 max-w-lg">
+                          <div className="flex justify-between items-center pb-2 border-b border-rosegold/10">
+                            <span className="font-bold text-[10px] uppercase tracking-wider text-rosegold dark:text-goldAccent">
+                              Overriding Subscription Plan
+                            </span>
+                            <button
+                              onClick={() => setEditingUserId(null)}
+                              className="text-darktext/60 hover:text-rosegold font-bold uppercase text-[9px]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[9px] uppercase tracking-wider text-darktext/60 block font-bold">Target Plan</label>
+                              <select
+                                value={overrideForm.plan}
+                                onChange={(e) => setOverrideForm({...overrideForm, plan: e.target.value})}
+                                className="w-full bg-white dark:bg-darkbg border border-rosegold/20 dark:border-goldAccent/25 rounded p-2 text-xs"
+                              >
+                                <option value="Free">Free</option>
+                                <option value="Pro Planner">Pro Planner (Planner)</option>
+                                <option value="Premium Planner">Premium Planner (Planner)</option>
+                                <option value="Vendor Pro">Vendor Pro (Vendor)</option>
+                                <option value="Vendor Elite">Vendor Elite (Vendor)</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] uppercase tracking-wider text-darktext/60 block font-bold">Status</label>
+                              <select
+                                value={overrideForm.subscriptionStatus}
+                                onChange={(e) => setOverrideForm({...overrideForm, subscriptionStatus: e.target.value})}
+                                className="w-full bg-white dark:bg-darkbg border border-rosegold/20 dark:border-goldAccent/25 rounded p-2 text-xs"
+                              >
+                                <option value="active">Active</option>
+                                <option value="expired">Expired</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] uppercase tracking-wider text-darktext/60 block font-bold">Duration (Days)</label>
+                              <input
+                                type="number"
+                                value={overrideForm.durationDays}
+                                onChange={(e) => setOverrideForm({...overrideForm, durationDays: e.target.value})}
+                                disabled={overrideForm.plan === 'Free'}
+                                className="w-full bg-white dark:bg-darkbg border border-rosegold/20 dark:border-goldAccent/25 rounded p-2 text-xs disabled:opacity-50"
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              updateSubscriptionMutation.mutate({
+                                userId: editingUserId,
+                                ...overrideForm
+                              });
+                            }}
+                            className="w-full py-2 bg-rosegold dark:bg-goldAccent text-white dark:text-black uppercase font-bold tracking-widest rounded-xl transition-all shadow hover:scale-[1.01]"
+                          >
+                            Apply Subscription Override
+                          </button>
+                        </div>
+                      ) : null}
+
+                      {/* Subscriptions Table */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-rosegold/15 opacity-60 text-[9px] uppercase font-bold tracking-wider">
+                              <th className="py-2.5 px-2">Subscriber</th>
+                              <th className="py-2.5 px-2">Email</th>
+                              <th className="py-2.5 px-2">Account Role</th>
+                              <th className="py-2.5 px-2">Plan</th>
+                              <th className="py-2.5 px-2">Start Date</th>
+                              <th className="py-2.5 px-2">End Date</th>
+                              <th className="py-2.5 px-2 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {users
+                              .filter(u => u.plan && u.plan !== 'Free')
+                              .map((u) => (
+                                <tr key={u._id} className="border-b border-rosegold/5 hover:bg-cream/5 transition-colors text-[11px]">
+                                  <td className="py-3 px-2 font-semibold font-playfair text-darktext dark:text-white">{u.name}</td>
+                                  <td className="py-3 px-2 text-darktext/70 dark:text-gray-400">{u.email}</td>
+                                  <td className="py-3 px-2 capitalize">
+                                    <span className={`px-2.5 py-0.5 rounded-full font-bold text-[9px] uppercase ${getRoleBadge(u.role)}`}>
+                                      {u.role}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-2 font-bold text-rosegold dark:text-goldAccent">{u.plan}</td>
+                                  <td className="py-3 px-2">
+                                    {u.planStartDate ? new Date(u.planStartDate).toLocaleDateString() : 'N/A'}
+                                  </td>
+                                  <td className="py-3 px-2">
+                                    {u.planEndDate ? new Date(u.planEndDate).toLocaleDateString() : 'Never'}
+                                  </td>
+                                  <td className="py-3 px-2 text-right">
+                                    <button
+                                      onClick={() => {
+                                        setEditingUserId(u._id);
+                                        setOverrideForm({
+                                          plan: u.plan,
+                                          subscriptionStatus: u.subscriptionStatus || 'active',
+                                          durationDays: 30
+                                        });
+                                      }}
+                                      className="px-3 py-1 bg-rosegold/10 border border-rosegold/20 text-rosegold hover:bg-rosegold/15 rounded-lg font-bold uppercase tracking-wider text-[9px]"
+                                    >
+                                      Override Plan
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            {users.filter(u => u.plan && u.plan !== 'Free').length === 0 && (
+                              <tr>
+                                <td colSpan="7" className="py-8 text-center opacity-60 font-light">
+                                  No active paid plan subscribers at this time.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Quick override user database list */}
+                      <div className="pt-4 border-t border-rosegold/10">
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent font-playfair mb-3">
+                          Quick Plan Override (Free Users Database)
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {users
+                            .filter(u => u.plan === 'Free' || !u.plan)
+                            .slice(0, 10)
+                            .map((u) => (
+                              <div key={u._id} className="p-3 bg-cream/5 border border-rosegold/10 rounded-xl flex justify-between items-center text-xs">
+                                <div>
+                                  <span className="font-bold text-darktext dark:text-white">{u.name}</span>
+                                  <p className="text-[10px] text-darktext/50">{u.email} • Role: {u.role}</p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    setEditingUserId(u._id);
+                                    setOverrideForm({
+                                      plan: u.role === 'planner' ? 'Pro Planner' : 'Vendor Pro',
+                                      subscriptionStatus: 'active',
+                                      durationDays: 30
+                                    });
+                                  }}
+                                  className="px-2.5 py-1 bg-cream/40 border border-rosegold/20 text-[9px] font-bold uppercase tracking-wider rounded"
+                                >
+                                  Grant Paid Plan
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           )}
 

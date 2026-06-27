@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AuthLayout from "../layouts/AuthLayout";
 import {
@@ -24,9 +24,34 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [plan, setPlan] = useState("");
 
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Prefill details from URL query params (if coming from billing/pricing page)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const nameParam = searchParams.get("name");
+    const emailParam = searchParams.get("email");
+    const phoneParam = searchParams.get("phone");
+    const planParam = searchParams.get("plan");
+
+    if (nameParam) setName(nameParam);
+    if (emailParam) setEmail(emailParam);
+    if (phoneParam) setPhone(phoneParam);
+    if (planParam) {
+      setPlan(planParam);
+      // Auto-select role based on plan name keyword
+      const planLower = planParam.toLowerCase();
+      if (planLower.includes("vendor")) {
+        setRole("vendor");
+      } else if (planLower.includes("planner") || planLower.includes("free")) {
+        setRole("planner");
+      }
+    }
+  }, [location.search]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,7 +80,7 @@ const Register = () => {
 
     try {
       setIsSubmitting(true);
-      await register(name, email, phone, password, role);
+      await register(name, email, phone, password, role, plan);
       toast.success("Welcome to the EvenAfter family! Please sign in.");
       navigate("/login");
     } catch (error) {

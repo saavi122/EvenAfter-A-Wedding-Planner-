@@ -4,17 +4,281 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiCheck, FiX, FiCalendar, FiMessageSquare, FiBriefcase, FiUsers, 
-  FiStar, FiActivity, FiMapPin, FiClock, FiPlus, FiTrash2, FiHeart 
+  FiStar, FiActivity, FiMapPin, FiClock, FiPlus, FiTrash2, FiHeart,
+  FiPrinter, FiDownload, FiDollarSign, FiShield
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
+const formatINR = (num) => new Intl.NumberFormat('en-IN').format(num || 0);
+
 export const PlannerDashboard = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [plannerTab, setPlannerTab] = useState('Overview');
   const [selectedEventId, setSelectedEventId] = useState('');
+  const [invoiceSearch, setInvoiceSearch] = useState('');
+  const [invoiceFilterStatus, setInvoiceFilterStatus] = useState('All');
+
+  // Fetch Planner profile me
+  const { data: profileMeResponse, refetch: refetchProfileMe } = useQuery({
+    queryKey: ['plannerProfileMe'],
+    queryFn: async () => {
+      const res = await fetch('/api/planners/profile/me');
+      if (!res.ok) throw new Error('Failed to fetch planner profile');
+      return res.json();
+    },
+    enabled: plannerTab === 'My Profile'
+  });
+
+  const plannerProfile = profileMeResponse?.data;
+
+  // Fetch Planner analytics
+  const { data: analyticsResponse } = useQuery({
+    queryKey: ['plannerAnalytics'],
+    queryFn: async () => {
+      const res = await fetch('/api/planners/analytics/stats');
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      return res.json();
+    },
+    enabled: plannerTab === 'My Profile'
+  });
+
+  const analytics = analyticsResponse?.data || { profileViews: 0, totalHires: 0, revenueGenerated: 0, averageRating: 5.0 };
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: '',
+    phoneNo: '',
+    companyName: '',
+    bio: '',
+    citiesServed: '',
+    specializations: [],
+    servicesOffered: '',
+    coverImage: '',
+    profileImage: '',
+    experience: ''
+  });
+
+  useEffect(() => {
+    if (plannerProfile) {
+      setProfileForm({
+        name: plannerProfile.userId?.name || '',
+        email: plannerProfile.userId?.email || '',
+        phoneNo: plannerProfile.userId?.phoneNo || '',
+        companyName: plannerProfile.companyName || '',
+        bio: plannerProfile.bio || '',
+        citiesServed: plannerProfile.citiesServed?.join(', ') || '',
+        specializations: plannerProfile.specializations || [],
+        servicesOffered: plannerProfile.servicesOffered?.join(', ') || '',
+        coverImage: plannerProfile.coverImage || '',
+        profileImage: plannerProfile.profileImage || '',
+        experience: plannerProfile.exprience || plannerProfile.experience || ''
+      });
+    }
+  }, [plannerProfile]);
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updatedData) => {
+      const res = await fetch('/api/planners/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedData)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Failed to update profile');
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success("Profile updated successfully!");
+      refetchProfileMe();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update profile");
+    }
+  });
+
+  const [eventForm, setEventForm] = useState({
+    name: '',
+    venue: '',
+    date: '',
+    guestCount: 100,
+    budget: '',
+    eventType: 'Wedding',
+    clientFeedback: '',
+    gallery: '',
+    vendorsCollaborated: ''
+  });
+
+  const addEventMutation = useMutation({
+    mutationFn: async (eventData) => {
+      const res = await fetch('/api/planners/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Failed to add event');
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success("Past event added to portfolio!");
+      setEventForm({
+        name: '',
+        venue: '',
+        date: '',
+        guestCount: 100,
+        budget: '',
+        eventType: 'Wedding',
+        clientFeedback: '',
+        gallery: '',
+        vendorsCollaborated: ''
+      });
+      queryClient.invalidateQueries({ queryKey: ['plannerEvents'] });
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to add event");
+    }
+  });
+
+  // Fetch personal invoices
+  const { data: invoicesResponse } = useQuery({
+    queryKey: ['myInvoices'],
+    queryFn: async () => {
+      const res = await fetch('/api/invoices/my');
+      if (!res.ok) throw new Error('Failed to fetch invoices');
+      return res.json();
+    }
+  });
+
+  const invoices = invoicesResponse?.data || [];
+
+  const handleToggleAutoRenew = async () => {
+    try {
+      const response = await fetch('/api/auth/toggle-autorenew', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        toast.success(data.data.autoRenew ? "Auto-renewal enabled" : "Auto-renewal disabled");
+        await refreshUser();
+      } else {
+        throw new Error(data.message || "Failed to toggle auto-renew");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to update settings");
+    }
+  };
+
+  const handlePrintInvoice = (inv) => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice - ${inv.invoiceNumber}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #4A403A; line-height: 1.5; }
+            .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); font-size: 16px; color: #555; border-radius: 12px; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #C9A27E; padding-bottom: 20px; margin-bottom: 30px; }
+            .logo { font-size: 26px; font-weight: bold; color: #C9A27E; font-family: Georgia, serif; }
+            .title { font-size: 28px; font-weight: bold; text-align: right; color: #4A403A; }
+            .details-grid { display: grid; grid-template-cols: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
+            .details-block h4 { margin: 0 0 8px 0; color: #C9A27E; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+            .details-block p { margin: 0 0 5px 0; font-size: 14px; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+            .table th { background: #FAF7F2; color: #4A403A; font-weight: bold; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+            .table th, .table td { border: 1px solid #eee; padding: 12px; text-align: left; }
+            .table td { font-size: 14px; }
+            .totals { float: right; width: 300px; margin-top: 20px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+            .totals-row.grand-total { border-top: 2px double #C9A27E; font-size: 18px; font-weight: bold; color: #C9A27E; padding-top: 12px; }
+            .footer { text-align: center; margin-top: 80px; font-size: 11px; opacity: 0.6; border-top: 1px solid #eee; padding-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-box">
+            <div class="header">
+              <div>
+                <div class="logo">EvenAfter</div>
+                <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.8;">Premium Wedding Planner & Vendor Network</p>
+              </div>
+              <div class="title">INVOICE</div>
+            </div>
+            <div class="details-grid">
+              <div class="details-block">
+                <h4>Invoice Info</h4>
+                <p><strong>Invoice No:</strong> ${inv.invoiceNumber}</p>
+                <p><strong>Date & Time:</strong> ${new Date(inv.createdAt).toLocaleString()}</p>
+                <p><strong>Payment Status:</strong> <span style="color: #10B981; font-weight: bold;">PAID</span></p>
+              </div>
+              <div class="details-block" style="text-align: right;">
+                <h4>Billed To</h4>
+                <p><strong>Name:</strong> ${inv.userName}</p>
+                <p><strong>Phone:</strong> ${inv.userPhone}</p>
+                <p><strong>Email:</strong> ${inv.userEmail}</p>
+              </div>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Payment Method</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${inv.planName} Subscription Plan Activation</td>
+                  <td>${inv.paymentMethod.toUpperCase()}</td>
+                  <td style="text-align: right;">₹${new Intl.NumberFormat('en-IN').format(inv.amountPaid)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="width: 100%; overflow: hidden;">
+              <div class="totals">
+                <div class="totals-row">
+                  <span>Subtotal</span>
+                  <span>₹${new Intl.NumberFormat('en-IN').format(inv.amountPaid)}</span>
+                </div>
+                <div class="totals-row">
+                  <span>GST (18%)</span>
+                  <span>₹${new Intl.NumberFormat('en-IN').format(inv.gst)}</span>
+                </div>
+                <div class="totals-row grand-total">
+                  <span>Grand Total</span>
+                  <span>₹${new Intl.NumberFormat('en-IN').format(inv.totalAmount)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="footer">
+              <p>This is a computer generated invoice and does not require a physical signature.</p>
+              <p>For any billing support, please reach out to support@evenafter.com</p>
+            </div>
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const filteredInvoices = invoices.filter(inv => {
+    const matchesSearch = inv.invoiceNumber.toLowerCase().includes(invoiceSearch.toLowerCase()) || 
+                          inv.planName.toLowerCase().includes(invoiceSearch.toLowerCase());
+    const matchesStatus = invoiceFilterStatus === 'All' || inv.paymentStatus === invoiceFilterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   // Timeline form state
   const [timelineTitle, setTimelineTitle] = useState('');
@@ -286,9 +550,8 @@ export const PlannerDashboard = () => {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-rosegold/20 dark:border-goldAccent/15 pb-2">
-        {['Overview', 'Timeline & Progress', 'Budget & Checklist', 'Project Files', 'Vendor Meetings'].map((tab) => (
+        {['Overview', 'Timeline & Progress', 'Budget & Checklist', 'Project Files', 'Vendor Meetings', 'Billing & Invoices', 'My Profile'].map((tab) => (
           <button
             key={tab}
             onClick={() => setPlannerTab(tab)}
@@ -812,13 +1075,587 @@ export const PlannerDashboard = () => {
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-rosegold dark:bg-goldAccent text-white dark:text-black font-semibold text-xs uppercase tracking-widest rounded shadow"
-                >
-                  Schedule Consultation
-                </button>
               </form>
+            </div>
+          )}
+
+          {/* BILLING & INVOICES TAB */}
+          {plannerTab === 'Billing & Invoices' && (
+            <div className="space-y-8 animate-fadeIn text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                
+                {/* Subscription Status Details (7 columns) */}
+                <div className="md:col-span-7 space-y-6">
+                  <div className="p-5 rounded-2xl bg-cream/15 dark:bg-darkbg/25 border border-rosegold/15 dark:border-goldAccent/10">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <span className="text-[9px] uppercase tracking-widest text-rosegold dark:text-goldAccent font-bold">Membership Plan</span>
+                        <h4 className="text-xl font-bold font-playfair mt-1 text-darktext dark:text-white flex items-center">
+                          Current Plan: <span className="text-rosegold dark:text-goldAccent font-semibold ml-1.5">{user?.plan || 'Free'}</span>
+                          {user?.plan === 'Premium Planner' && (
+                            <span className="ml-2 inline-flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/25 text-yellow-600 dark:text-goldAccent text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded-full tracking-wider">
+                              <FiShield className="w-2.5 h-2.5" /> Premium
+                            </span>
+                          )}
+                        </h4>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        user?.subscriptionStatus === 'active' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500'
+                      }`}>
+                        {user?.subscriptionStatus || 'active'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 border-t border-rosegold/10 pt-4 text-xs">
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Start Date:</span>
+                        <span className="font-semibold">{user?.planStartDate ? new Date(user.planStartDate).toLocaleDateString() : 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Renewal Date:</span>
+                        <span className="font-semibold">{user?.planEndDate ? new Date(user.planEndDate).toLocaleDateString() : 'Never'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Renewal Settings:</span>
+                        <span className={`font-semibold ${user?.autoRenew !== false ? 'text-emerald-500' : 'text-gray-400'}`}>
+                          {user?.autoRenew !== false ? 'Auto-Renew Enabled' : 'Auto-Renew Disabled'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Auto-renew toggle switch for Premium Users */}
+                    {user?.plan === 'Premium Planner' && (
+                      <div className="mt-4 pt-4 border-t border-rosegold/10 flex items-center justify-between">
+                        <div>
+                          <span className="font-semibold text-xs text-darktext dark:text-white">Auto-Renewal Settings</span>
+                          <p className="text-[9px] opacity-60 mt-0.5">Toggle auto-renewal for this subscription cycle.</p>
+                        </div>
+                        <button
+                          onClick={handleToggleAutoRenew}
+                          className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300 ${
+                            user?.autoRenew !== false ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'
+                          }`}
+                        >
+                          <motion.div
+                            layout
+                            className="bg-white w-4 h-4 rounded-full shadow-md"
+                            animate={{ x: user?.autoRenew !== false ? 16 : 0 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          />
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      {(user?.plan === 'Free' || !user?.plan) ? (
+                        <Link
+                          to="/pricing"
+                          className="px-4 py-2 bg-rosegold hover:bg-rosegold/90 dark:bg-goldAccent dark:hover:bg-goldAccent/90 text-white dark:text-black font-semibold tracking-wider rounded-lg text-[10px] uppercase shadow-sm"
+                        >
+                          Upgrade Plan
+                        </Link>
+                      ) : user?.plan === 'Pro Planner' ? (
+                        <div className="flex flex-wrap gap-3">
+                          <Link
+                            to="/pricing"
+                            className="px-4 py-2 bg-rosegold hover:bg-rosegold/90 dark:bg-goldAccent dark:hover:bg-goldAccent/90 text-white dark:text-black font-semibold tracking-wider rounded-lg text-[10px] uppercase shadow-sm"
+                          >
+                            Upgrade to Premium
+                          </Link>
+                          {invoices.length > 0 && (
+                            <button
+                              onClick={() => handlePrintInvoice(invoices[0])}
+                              className="px-4 py-2 border border-rosegold/30 dark:border-goldAccent/30 text-rosegold dark:text-goldAccent hover:bg-rosegold/5 dark:hover:bg-goldAccent/5 font-semibold tracking-wider rounded-lg text-[10px] uppercase shadow-sm flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <FiPrinter className="w-3.5 h-3.5" />
+                              Download Invoice
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-4 py-2 bg-rosegold/30 dark:bg-goldAccent/25 text-white/50 dark:text-black/50 font-semibold tracking-wider rounded-lg text-[10px] uppercase cursor-not-allowed"
+                        >
+                          Premium Tier Active
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pricing Comparison / Plan Benefits */}
+                  <div className="p-5 rounded-2xl bg-cream/15 dark:bg-darkbg/25 border border-rosegold/15 dark:border-goldAccent/10 space-y-4">
+                    <h5 className="font-playfair text-sm font-semibold tracking-wide text-rosegold dark:text-goldAccent">
+                      Membership Tier Benefits
+                    </h5>
+                    <div className="space-y-3">
+                      <div className="p-3 bg-white/40 dark:bg-black/15 rounded-xl border border-rosegold/10">
+                        <div className="flex justify-between font-bold mb-1">
+                          <span>Free Plan</span>
+                          <span>₹0</span>
+                        </div>
+                        <p className="text-[10px] opacity-75 leading-relaxed">
+                          Profile showcase, portfolio uploads, basic analytics, and up to 3 client inquiries per month.
+                        </p>
+                      </div>
+                      <div className="p-3 bg-white/40 dark:bg-black/15 rounded-xl border border-rosegold/10">
+                        <div className="flex justify-between font-bold mb-1">
+                          <span>Pro Planner</span>
+                          <span>₹999/month</span>
+                        </div>
+                        <p className="text-[10px] opacity-75 leading-relaxed">
+                          Everything in Free, unlimited client inquiries, featured search placement, and advanced lead analytics.
+                        </p>
+                      </div>
+                      <div className="p-3 bg-white/40 dark:bg-black/15 rounded-xl border border-rosegold/10">
+                        <div className="flex justify-between font-bold mb-1">
+                          <span>Premium Planner</span>
+                          <span>₹2,499/month</span>
+                        </div>
+                        <p className="text-[10px] opacity-75 leading-relaxed">
+                          Priority placements, AI lead matching, custom portfolio site, team collaboration tools, and dedicated support.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Billing Limits Summary (5 columns) */}
+                <div className="md:col-span-5 p-5 rounded-2xl bg-cream/15 dark:bg-darkbg/25 border border-rosegold/15 dark:border-goldAccent/10 space-y-4">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent pb-2 border-b border-rosegold/10">
+                    Usage Limits
+                  </h4>
+                  
+                  <div className="space-y-4 text-xs">
+                    <div>
+                      <div className="flex justify-between font-medium mb-1.5">
+                        <span>Client Inquiries</span>
+                        <span>{user?.plan === 'Free' ? '0 / 3 per month' : 'Unlimited'}</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-cream/40 dark:bg-darkbg/40 overflow-hidden">
+                        <div 
+                          className="h-full bg-rosegold dark:bg-goldAccent transition-all duration-300"
+                          style={{ width: user?.plan === 'Free' ? '0%' : '100%' }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="flex justify-between font-medium mb-1.5">
+                        <span>Portfolio Images</span>
+                        <span>{user?.plan === 'Free' ? 'Max 10 images' : 'Unlimited uploads'}</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-cream/40 dark:bg-darkbg/40 overflow-hidden">
+                        <div 
+                          className="h-full bg-rosegold dark:bg-goldAccent transition-all duration-300"
+                          style={{ width: user?.plan === 'Free' ? '50%' : '100%' }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="flex justify-between font-medium mb-1.5">
+                        <span>Analytics Dashboard</span>
+                        <span>{user?.plan === 'Free' ? 'Basic Statistics' : 'Advanced Analytics'}</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-cream/40 dark:bg-darkbg/40 overflow-hidden">
+                        <div 
+                          className="h-full bg-rosegold dark:bg-goldAccent transition-all duration-300"
+                          style={{ width: user?.plan === 'Free' ? '30%' : '100%' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Invoices Table Section */}
+              <div className="p-5 rounded-2xl bg-cream/15 dark:bg-darkbg/25 border border-rosegold/15 dark:border-goldAccent/10 space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-rosegold dark:text-goldAccent pb-2 border-b border-rosegold/10 sm:border-0 sm:pb-0">
+                    Payment & Invoice History
+                  </h4>
+                  
+                  {/* Search and filter controls */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      type="text"
+                      placeholder="Search Invoices..."
+                      value={invoiceSearch}
+                      onChange={(e) => setInvoiceSearch(e.target.value)}
+                      className="px-3 py-1.5 bg-white/70 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/25 rounded-lg text-[10px] outline-none text-darktext dark:text-white focus:border-rosegold dark:focus:border-goldAccent"
+                    />
+                    <select
+                      value={invoiceFilterStatus}
+                      onChange={(e) => setInvoiceFilterStatus(e.target.value)}
+                      className="px-3 py-1.5 bg-white/70 dark:bg-black/25 border border-rosegold/20 dark:border-goldAccent/25 rounded-lg text-[10px] outline-none text-darktext dark:text-white"
+                    >
+                      <option value="All">All Invoices</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Pending">Pending</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-[10px] sm:text-xs">
+                    <thead>
+                      <tr className="border-b border-rosegold/10 opacity-60">
+                        <th className="py-2.5">Invoice Number</th>
+                        <th className="py-2.5">Date</th>
+                        <th className="py-2.5">Description</th>
+                        <th className="py-2.5">Amount</th>
+                        <th className="py-2.5">Status</th>
+                        <th className="py-2.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredInvoices.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="py-8 text-center opacity-60 font-light">
+                            No billing receipts or invoices found matching criteria.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredInvoices.map((inv) => (
+                          <tr key={inv._id} className="border-b border-rosegold/5 hover:bg-cream/5">
+                            <td className="py-3 font-mono font-bold text-xs">{inv.invoiceNumber}</td>
+                            <td className="py-3">{new Date(inv.createdAt).toLocaleDateString()}</td>
+                            <td className="py-3">{inv.planName} Plan</td>
+                            <td className="py-3">₹{formatINR(inv.totalAmount)}</td>
+                            <td className="py-3">
+                              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold uppercase tracking-wider text-[8px] border border-emerald-500/20">
+                                {inv.paymentStatus}
+                              </span>
+                            </td>
+                            <td className="py-3 text-right">
+                              <button
+                                onClick={() => handlePrintInvoice(inv)}
+                                className="inline-flex items-center gap-1 text-rosegold dark:text-goldAccent hover:underline font-bold uppercase tracking-wider text-[8px] cursor-pointer"
+                              >
+                                <FiPrinter className="w-3.5 h-3.5" />
+                                <span>Print Receipt</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {plannerTab === 'My Profile' && (
+            <div className="space-y-8">
+              
+              {/* Analytics Summary */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-5 rounded-3xl border border-rosegold/20 bg-white dark:bg-darkcard shadow-sm">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Views</span>
+                  <div className="text-2xl font-black text-darktext dark:text-goldAccent mt-1 font-playfair">{analytics.profileViews}</div>
+                  <span className="text-[9px] text-emerald-500 font-semibold mt-1 block">✦ Realtime metric</span>
+                </div>
+                <div className="p-5 rounded-3xl border border-rosegold/20 bg-white dark:bg-darkcard shadow-sm">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Hires</span>
+                  <div className="text-2xl font-black text-darktext dark:text-goldAccent mt-1 font-playfair">{analytics.totalHires}</div>
+                  <span className="text-[9px] text-slate-550 block mt-1">From active requests</span>
+                </div>
+                <div className="p-5 rounded-3xl border border-rosegold/20 bg-white dark:bg-darkcard shadow-sm">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue Generated</span>
+                  <div className="text-2xl font-black text-darktext dark:text-goldAccent mt-1 font-playfair">₹{formatINR(analytics.revenueGenerated)}</div>
+                  <span className="text-[9px] text-slate-550 block mt-1">Estimated earnings</span>
+                </div>
+                <div className="p-5 rounded-3xl border border-rosegold/20 bg-white dark:bg-darkcard shadow-sm">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Average Rating</span>
+                  <div className="text-2xl font-black text-darktext dark:text-goldAccent mt-1 font-playfair flex items-center">
+                    <FiStar className="fill-current text-amber-500 mr-1.5 w-5 h-5" />
+                    {analytics.averageRating}
+                  </div>
+                  <span className="text-[9px] text-emerald-500 font-semibold mt-1 block">✦ Verified Reviews</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                {/* Edit Profile Form */}
+                <div className="p-6 md:p-8 rounded-3xl border border-rosegold/20 bg-white dark:bg-darkcard shadow-sm space-y-6">
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-playfair uppercase tracking-wider">Edit Public Profile</h3>
+                    <p className="text-[10px] text-slate-450 mt-1">Update your professional details and branding assets</p>
+                  </div>
+
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const citiesServedArray = profileForm.citiesServed.split(',').map(s => s.trim()).filter(Boolean);
+                    const servicesOfferedArray = profileForm.servicesOffered.split(',').map(s => s.trim()).filter(Boolean);
+                    updateProfileMutation.mutate({
+                      ...profileForm,
+                      citiesServed: citiesServedArray,
+                      servicesOffered: servicesOfferedArray
+                    });
+                  }} className="space-y-4 text-xs font-semibold text-slate-700 dark:text-slate-350">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={profileForm.name}
+                          onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Company Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={profileForm.companyName}
+                          onChange={(e) => setProfileForm({ ...profileForm, companyName: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Phone Number</label>
+                        <input
+                          type="text"
+                          required
+                          value={profileForm.phoneNo}
+                          onChange={(e) => setProfileForm({ ...profileForm, phoneNo: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Email Address</label>
+                        <input
+                          type="email"
+                          required
+                          value={profileForm.email}
+                          onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block mb-1 text-[10px] uppercase text-slate-400">Professional Bio</label>
+                      <textarea
+                        rows="3"
+                        required
+                        value={profileForm.bio}
+                        onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none resize-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Experience (e.g. 5 Years)</label>
+                        <input
+                          type="text"
+                          value={profileForm.experience}
+                          onChange={(e) => setProfileForm({ ...profileForm, experience: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Cities Served (comma separated)</label>
+                        <input
+                          type="text"
+                          placeholder="Mumbai, Goa, Udaipur"
+                          value={profileForm.citiesServed}
+                          onChange={(e) => setProfileForm({ ...profileForm, citiesServed: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block mb-1 text-[10px] uppercase text-slate-400">Services Offered (comma separated)</label>
+                      <input
+                        type="text"
+                        placeholder="Venue Selection, Catering Coordination, Decoration"
+                        value={profileForm.servicesOffered}
+                        onChange={(e) => setProfileForm({ ...profileForm, servicesOffered: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Profile Photo URL</label>
+                        <input
+                          type="text"
+                          value={profileForm.profileImage}
+                          onChange={(e) => setProfileForm({ ...profileForm, profileImage: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Cover Image URL</label>
+                        <input
+                          type="text"
+                          value={profileForm.coverImage}
+                          onChange={(e) => setProfileForm({ ...profileForm, coverImage: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={updateProfileMutation.isPending}
+                      className="w-full py-3 bg-rosegold dark:bg-goldAccent text-white dark:text-black font-extrabold uppercase tracking-widest text-[10px] rounded-xl hover:opacity-90 transition-all shadow"
+                    >
+                      {updateProfileMutation.isPending ? "Updating profile..." : "Save Profile Details"}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Portfolio Event Management */}
+                <div className="p-6 md:p-8 rounded-3xl border border-rosegold/20 bg-white dark:bg-darkcard shadow-sm space-y-6">
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-playfair uppercase tracking-wider">Portfolio Management</h3>
+                    <p className="text-[10px] text-slate-450 mt-1">Publish completed weddings to build your credibility</p>
+                  </div>
+
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const galleryArray = eventForm.gallery.split(',').map(s => s.trim()).filter(Boolean);
+                    const vendorsArray = eventForm.vendorsCollaborated.split(',').map(s => s.trim()).filter(Boolean);
+                    addEventMutation.mutate({
+                      ...eventForm,
+                      gallery: galleryArray,
+                      vendorsCollaborated: vendorsArray
+                    });
+                  }} className="space-y-4 text-xs font-semibold text-slate-700 dark:text-slate-350">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Event Name</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Siddharth & Kiara's Vows"
+                          value={eventForm.name}
+                          onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Event Type</label>
+                        <select
+                          value={eventForm.eventType}
+                          onChange={(e) => setEventForm({ ...eventForm, eventType: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        >
+                          <option value="Wedding">Royal Wedding</option>
+                          <option value="Destination Wedding">Destination Wedding</option>
+                          <option value="Beach Wedding">Beach Wedding</option>
+                          <option value="Corporate Event">Corporate Event</option>
+                          <option value="Engagement Ceremony">Engagement Ceremony</option>
+                          <option value="Traditional Wedding">Traditional Wedding</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Venue Location</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Leela Palace, Udaipur"
+                          value={eventForm.venue}
+                          onChange={(e) => setEventForm({ ...eventForm, venue: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Event Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={eventForm.date}
+                          onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Budget (INR)</label>
+                        <input
+                          type="number"
+                          required
+                          placeholder="e.g. 5000000"
+                          value={eventForm.budget}
+                          onChange={(e) => setEventForm({ ...eventForm, budget: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-[10px] uppercase text-slate-400">Guest Count</label>
+                        <input
+                          type="number"
+                          value={eventForm.guestCount}
+                          onChange={(e) => setEventForm({ ...eventForm, guestCount: Number(e.target.value) })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block mb-1 text-[10px] uppercase text-slate-400">Client Feedback Review</label>
+                      <textarea
+                        rows="2"
+                        placeholder="Feedback comments from the couple..."
+                        value={eventForm.clientFeedback}
+                        onChange={(e) => setEventForm({ ...eventForm, clientFeedback: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block mb-1 text-[10px] uppercase text-slate-400">Collaborated Vendors (comma separated)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Taj Caterers, Magic Flowers, DJ Ritesh"
+                        value={eventForm.vendorsCollaborated}
+                        onChange={(e) => setEventForm({ ...eventForm, vendorsCollaborated: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block mb-1 text-[10px] uppercase text-slate-400">Event Photos Gallery (comma separated URLs)</label>
+                      <input
+                        type="text"
+                        placeholder="https://image1.com, https://image2.com"
+                        value={eventForm.gallery}
+                        onChange={(e) => setEventForm({ ...eventForm, gallery: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-rosegold/25 dark:border-slate-800 bg-cream/5 text-darktext dark:text-white outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={addEventMutation.isPending}
+                      className="w-full py-3 bg-[#4A403A] text-white font-extrabold uppercase tracking-widest text-[10px] rounded-xl hover:bg-opacity-95 transition-all shadow"
+                    >
+                      {addEventMutation.isPending ? "Adding event..." : "Publish Event to Portfolio"}
+                    </button>
+                  </form>
+                </div>
+
+              </div>
+
             </div>
           )}
         </motion.div>

@@ -16,7 +16,8 @@ import {
     deleteTestimonial,
     getGallery,
     createGalleryItem,
-    deleteGalleryItem
+    deleteGalleryItem,
+    updateUserSubscription
 } from "../controllers/admin.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -34,6 +35,7 @@ const isAdmin = (req, res, next) => {
 // Users management
 router.get("/users", verifyJWT, isAdmin, getAdminUsers);
 router.patch("/users/:userId", verifyJWT, isAdmin, updateUserStatus);
+router.patch("/users/:userId/subscription", verifyJWT, isAdmin, updateUserSubscription);
 router.delete("/users/:userId", verifyJWT, isAdmin, deleteUser);
 
 // Vendors approval

@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
+import Pricing from '../pages/Pricing';
+import Billing from '../pages/Billing';
 
 // Client Dashboard components
 import ClientLayout from '../layouts/ClientLayout';
@@ -11,6 +13,7 @@ import FindPlanners from '../pages/client/FindPlanners';
 import PlannerProfile from '../pages/client/PlannerProfile';
 import DirectChat from '../pages/client/DirectChat';
 import ClientProfilePage from '../pages/client/ClientProfilePage';
+import AITestPage from '../pages/client/AITestPage';
 
 // Planner Dashboard components
 import PlannerLayout from '../layouts/PlannerLayout';
@@ -44,6 +47,8 @@ export const AppRoutes = () => {
           <Register />
         </GuestRoute>
       } />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/billing" element={<Billing />} />
 
       {/* Client Dashboard Routes */}
       <Route path="/client" element={
@@ -55,8 +60,10 @@ export const AppRoutes = () => {
         <Route path="dashboard" element={<ClientDashboard />} />
         <Route path="planners" element={<FindPlanners />} />
         <Route path="planners/:plannerId" element={<PlannerProfile />} />
+        <Route path="vendors/:vendorId" element={<VendorProfile />} />
         <Route path="chat/:plannerId" element={<DirectChat />} />
         <Route path="profile" element={<ClientProfilePage />} />
+        <Route path="ai-test" element={<AITestPage />} />
       </Route>
 
       {/* Planner Dashboard Routes */}
@@ -80,6 +87,7 @@ export const AppRoutes = () => {
       }>
         <Route index element={<Navigate to="/vendor/dashboard" replace />} />
         <Route path="dashboard" element={<VendorDashboard />} />
+        <Route path="planners/:plannerId" element={<PlannerProfile />} />
         <Route path="chat/:plannerId" element={<DirectChat />} />
       </Route>
 

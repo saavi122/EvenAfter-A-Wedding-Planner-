@@ -4,6 +4,7 @@ import { FiMenu } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import ClientSidebar from '../components/ClientSidebar';
 import ThemeToggle from '../components/ThemeToggle';
+import AIWeddingPlanner from '../components/AIWeddingPlanner';
 
 export const ClientLayout = () => {
   const { user, loading } = useAuth();
@@ -102,6 +103,7 @@ export const ClientLayout = () => {
           <Outlet />
         </main>
       </div>
+      <AIWeddingPlanner />
     </div>
   );
 };

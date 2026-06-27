@@ -91,7 +91,57 @@ const vendorSchema = new mongoose.Schema({
     phone: { type: String, default: "" },
     email: { type: String, default: "" },
     address: { type: String, default: "" }
-  }
+  },
+  workingAreas:[{
+    type:String
+  }],
+  description:{
+    type:String,
+    default:""
+  },
+  profileViews:{
+    type:Number,
+    default:0
+  },
+  quoteRequests:{
+    type:Number,
+    default:0
+  },
+  bookingRequests:{
+    type:Number,
+    default:0
+  },
+  socialLinks:{
+    instagram:{ type: String, default: "" },
+    facebook:{ type: String, default: "" },
+    linkedin:{ type: String, default: "" }
+  },
+  packages:{
+    basic:{
+      name:{ type: String, default: "Basic Package" },
+      price:{ type: String, default: "" },
+      description:{ type: String, default: "" }
+    },
+    standard:{
+      name:{ type: String, default: "Standard Package" },
+      price:{ type: String, default: "" },
+      description:{ type: String, default: "" }
+    },
+    premium:{
+      name:{ type: String, default: "Premium Package" },
+      price:{ type: String, default: "" },
+      description:{ type: String, default: "" }
+    }
+  },
+  previousEvents:[{
+    name:{ type: String },
+    eventType:{ type: String },
+    plannerName:{ type: String },
+    location:{ type: String },
+    date:{ type: Date },
+    clientRating:{ type: Number, default: 5 },
+    images:[{ type: String }]
+  }]
 });
 
 const vendor = mongoose.model('vendor',vendorSchema);

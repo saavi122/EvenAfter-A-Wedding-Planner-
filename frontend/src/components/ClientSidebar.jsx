@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiGrid, FiUsers, FiUser, FiLogOut, FiChevronLeft, FiChevronRight, FiMessageSquare } from 'react-icons/fi';
+import { FiMenu, FiGrid, FiUsers, FiUser, FiLogOut, FiChevronLeft, FiChevronRight, FiMessageSquare, FiCpu } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import logoImage from '../assets/logo.png';
 
@@ -29,6 +29,7 @@ export const ClientSidebar = ({ mobileOpen, setMobileOpen }) => {
     { name: 'Find Planners', path: '/client/planners', icon: FiUsers },
     { name: 'Direct Chat', path: '/client/chat/list', icon: FiMessageSquare },
     { name: 'My Profile', path: '/client/profile', icon: FiUser },
+    { name: 'AI Planner Test', path: '/client/ai-test', icon: FiCpu },
   ];
 
   const sidebarVariants = {
