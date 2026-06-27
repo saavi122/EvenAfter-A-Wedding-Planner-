@@ -26,6 +26,7 @@ export const AdminSidebar = ({ mobileOpen, setMobileOpen }) => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: FiGrid },
+    { name: 'Events', path: '/admin/events', icon: FiList },
   ];
 
   const sidebarVariants = {

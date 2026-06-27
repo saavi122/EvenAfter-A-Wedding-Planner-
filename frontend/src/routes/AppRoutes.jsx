@@ -28,6 +28,8 @@ import VendorDashboard from '../pages/vendor/VendorDashboard';
 // Admin Dashboard components
 import AdminLayout from '../layouts/AdminLayout';
 import AdminDashboard from '../pages/admin/AdminDashboard';
+import AdminEventsList from '../pages/admin/AdminEventsList';
+import AdminEventDetails from '../pages/admin/AdminEventDetails';
 
 import GuestRoute from '../components/GuestRoute';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -99,6 +101,8 @@ export const AppRoutes = () => {
       }>
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="events" element={<AdminEventsList />} />
+        <Route path="events/:eventId" element={<AdminEventDetails />} />
       </Route>
     </Routes>
   );

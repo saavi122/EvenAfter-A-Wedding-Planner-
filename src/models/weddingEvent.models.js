@@ -17,10 +17,14 @@ const budgetItemSchema = new mongoose.Schema({
 const weddingEventSchema = new mongoose.Schema({
   clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'client', required: true },
   plannerId: { type: mongoose.Schema.Types.ObjectId, ref: 'planner' },
+  vendors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'vendor' }],
   title: { type: String, required: true },
+  eventType: { type: String, default: 'Wedding' },
   date: { type: Date },
   venue: { type: String },
+  location: { type: String, default: '' },
   budget: { type: Number, default: 0 },
+  guestCount: { type: Number, default: 0 },
   progress: { type: Number, default: 0 }, // percentage 0 - 100
   timeline: [timelineItemSchema],
   budgetItems: [budgetItemSchema],

@@ -19,6 +19,20 @@ import {
     deleteGalleryItem,
     updateUserSubscription
 } from "../controllers/admin.controller.js";
+import {
+    getAdminEvents,
+    getAdminEventById,
+    createAdminEvent,
+    updateAdminEvent,
+    deleteAdminEvent,
+    assignPlanner,
+    assignVendors,
+    getEventProgress,
+    getEventChatHistory,
+    getAdminClients,
+    getAdminPlanners,
+    getAdminVendors
+} from "../controllers/adminEvent.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -61,5 +75,21 @@ router.delete("/testimonials/:id", verifyJWT, isAdmin, deleteTestimonial);
 router.get("/gallery", getGallery);
 router.post("/gallery", verifyJWT, isAdmin, createGalleryItem);
 router.delete("/gallery/:id", verifyJWT, isAdmin, deleteGalleryItem);
+
+// Event Management Routes
+router.get("/events", verifyJWT, isAdmin, getAdminEvents);
+router.post("/events", verifyJWT, isAdmin, createAdminEvent);
+router.get("/events/:id", verifyJWT, isAdmin, getAdminEventById);
+router.put("/events/:id", verifyJWT, isAdmin, updateAdminEvent);
+router.delete("/events/:id", verifyJWT, isAdmin, deleteAdminEvent);
+router.put("/events/:id/assign-planner", verifyJWT, isAdmin, assignPlanner);
+router.put("/events/:id/assign-vendors", verifyJWT, isAdmin, assignVendors);
+router.get("/events/:id/progress", verifyJWT, isAdmin, getEventProgress);
+router.get("/events/:id/chat", verifyJWT, isAdmin, getEventChatHistory);
+
+// Dropdown Helper Routes
+router.get("/clients", verifyJWT, isAdmin, getAdminClients);
+router.get("/planners", verifyJWT, isAdmin, getAdminPlanners);
+router.get("/vendors", verifyJWT, isAdmin, getAdminVendors);
 
 export default router;
