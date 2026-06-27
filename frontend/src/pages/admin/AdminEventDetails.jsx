@@ -51,23 +51,30 @@ export const AdminEventDetails = () => {
         api.get('/admin/vendors')
       ]);
 
-      setEvent(eventRes.data.data);
+      const fetchedEvent = eventRes.data.data;
+      if (fetchedEvent) {
+        if (fetchedEvent.vendors) {
+          fetchedEvent.vendors = fetchedEvent.vendors.filter(v => v !== null);
+        }
+        setEvent(fetchedEvent);
+        
+        // Seed edit form values
+        setEditForm({
+          title: fetchedEvent.title || '',
+          eventType: fetchedEvent.eventType || 'Wedding',
+          date: fetchedEvent.date ? fetchedEvent.date.substring(0, 10) : '',
+          venue: fetchedEvent.venue || '',
+          location: fetchedEvent.location || '',
+          budget: fetchedEvent.budget || '',
+          guestCount: fetchedEvent.guestCount || '',
+          status: fetchedEvent.status || 'Planning'
+        });
+      } else {
+        setEvent(null);
+      }
       setProgressData(progressRes.data.data);
       setPlanners(plannersRes.data.data || []);
       setVendorsList(vendorsRes.data.data || []);
-      
-      // Seed edit form values
-      const e = eventRes.data.data;
-      setEditForm({
-        title: e.title || '',
-        eventType: e.eventType || 'Wedding',
-        date: e.date ? e.date.substring(0, 10) : '',
-        venue: e.venue || '',
-        location: e.location || '',
-        budget: e.budget || '',
-        guestCount: e.guestCount || '',
-        status: e.status || 'Planning'
-      });
     } catch (err) {
       console.error(err);
       setError('Failed to load event details.');

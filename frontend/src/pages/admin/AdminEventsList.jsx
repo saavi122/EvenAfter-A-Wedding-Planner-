@@ -175,7 +175,7 @@ export const AdminEventsList = () => {
           </p>
         </div>
         <button
-          onClick={() => setIsOpen => setIsCreateOpen(true)}
+          onClick={() => setIsCreateOpen(true)}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rosegold text-white dark:bg-goldAccent dark:text-black font-semibold text-sm hover:opacity-95 shadow-md cursor-pointer flex-shrink-0"
         >
           <FiPlus className="w-4 h-4" />
