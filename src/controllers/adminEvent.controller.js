@@ -3,6 +3,7 @@ import Client from "../models/client.models.js";
 import Planner from "../models/planner.models.js";
 import Vendor from "../models/vendor.models.js";
 import Task from "../models/task.models.js";
+import VendorAssignment from "../models/vendorAssignment.models.js";
 import ChatMessage from "../models/chatMessage.models.js";
 import User from "../models/user.models.js";
 import ApiError from "../utils/ApiError.js";
@@ -104,8 +105,45 @@ export const getAdminEventById = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Event not found");
     }
 
+    // Also fetch any vendors assigned to this client via the VendorAssignment collection
+    // In VendorAssignment, weddingId is the client ID
+    const assignments = await VendorAssignment.find({ weddingId: event.clientId._id })
+        .populate({
+            path: 'vendorId',
+            populate: { path: 'name', select: 'name email phoneNo' }
+        });
+
+    // Merge vendor assignments into the event's vendors list
+    const eventObj = event.toObject();
+    
+    const assignedVendors = assignments
+        .filter(a => a.vendorId !== null)
+        .map(a => {
+            const v = a.vendorId.toObject ? a.vendorId.toObject() : a.vendorId;
+            return {
+                ...v,
+                vendorType: a.role || v.vendorType, // Override category with assigned role if present
+                assignmentStatus: a.status,
+                assignmentId: a._id
+            };
+        });
+
+    const allVendorsMap = new Map();
+    
+    if (eventObj.vendors) {
+        eventObj.vendors.forEach(v => {
+            if (v) allVendorsMap.set(v._id.toString(), { ...v, assignmentStatus: 'Accepted' });
+        });
+    }
+    
+    assignedVendors.forEach(v => {
+        if (v) allVendorsMap.set(v._id.toString(), v);
+    });
+
+    eventObj.vendors = Array.from(allVendorsMap.values());
+
     return res.status(200).json(
-        new ApiResponse(200, event, "Event details retrieved successfully")
+        new ApiResponse(200, eventObj, "Event details retrieved successfully")
     );
 });
 

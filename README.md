@@ -76,6 +76,17 @@
 - **Real-time Notifications** — Instant alerts for new assignments via WebSocket
 - **Planner Communication** — Direct chat with connected planners
 
+### AI Planner Assistant
+- **Personalized Chatbot** — Interactive floating wedding planning assistant powered by the Gemini API
+- **Exclusively Client Role** — Tailored exclusively to brides, grooms, and clients on the client dashboard
+- **Planning Domain Memory** — Retains session chat history and provides customized venue, decoration, catering, budgeting, and timeline ideas
+
+### Admin Dashboard & Event Monitoring
+- **Overview Metrics** — Complete monitoring of active, completed, and upcoming platform celebrations
+- **Read-Only Supervision** — Non-intrusive event details view displaying detailed client cards, lead planners, and assigned vendors
+- **Status & Progress Tracking** — Visual progress trackers, milestones timeline lists, and budget breakdowns (spent vs allocated categories)
+- **Communication Audit** — Access logs to review planner-client chat history logs
+
 ### Design and UX
 - **Luxury Rose-Gold Theme** — Premium ivory, champagne, and sage color palette
 - **Falling Flower Petals** — CSS-animated floral overlay on the landing page
@@ -106,10 +117,10 @@
                    |
 +------------------+------------------------------------------+
 |                  |         EXPRESS SERVER                   |
-|  +---------------+------------------+                       |
-|  |     Middleware Layer             |                       |
-|  |  (JWT Auth, CORS, Error Handler) |                       |
-|  +---------------+------------------+                       |
+|  +---------------+---------------------------------------+  |
+|  |                Middleware Layer                          |  |
+|  |           (JWT Auth, CORS, Error Handler)                      |  |
+|  +---------------+---------------------------------------+  |
 |                  |                                          |
 |  +-------+-------+-------+-------+-------+-------+          |
 |  | Auth  |Client |Planner|Vendor | Chat  |Meeting|          |
@@ -295,6 +306,24 @@ Open **http://localhost:5173** in your browser.
 | `GET` | `/vendor-assignments/planner` | Yes | Get assignments created by the planner |
 | `GET` | `/vendor-assignments/vendor` | Yes | Get assignments received by the vendor |
 | `PUT` | `/vendor-assignments/:id` | Yes | Vendor accepts or rejects an assignment |
+
+### Admin Events Supervision — `/api/admin`
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/events` | Yes (Admin) | List all platform events with search & filters |
+| `GET` | `/events/:id` | Yes (Admin) | Retrieve single event populated details (merging vendor assignments) |
+| `GET` | `/events/:id/progress` | Yes (Admin) | Retrieve progress aggregates and spent budget breakdowns |
+| `GET` | `/events/:id/chat` | Yes (Admin) | Retrieve client-planner chat history logs |
+| `GET` | `/clients` | Yes (Admin) | Retrieve list of clients |
+| `GET` | `/planners` | Yes (Admin) | Retrieve list of planners |
+| `GET` | `/vendors` | Yes (Admin) | Retrieve list of vendors |
+
+### AI Assistant Integration — `/api/ai`
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/chat` | Yes (Client) | Dispatch client chat messages to the Gemini AI Planner Assistant |
 
 ---
 

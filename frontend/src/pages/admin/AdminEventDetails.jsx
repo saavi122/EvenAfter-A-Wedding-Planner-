@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FiArrowLeft, FiUser, FiBriefcase, FiDollarSign, FiClock, FiMapPin, FiCalendar, 
-  FiTrash2, FiPlus, FiMessageSquare, FiSettings, FiCheckCircle, FiAlertCircle, FiX, FiCheck
+  FiArrowLeft, FiUser, FiUsers, FiBriefcase, FiDollarSign, FiClock, FiMapPin, FiCalendar, 
+  FiTrash2, FiPlus, FiMessageSquare, FiSettings, FiCheckCircle, FiAlertCircle, FiX, FiCheck,
+  FiMail, FiPhone
 } from 'react-icons/fi';
 import api from '../../services/api';
 
@@ -195,6 +196,39 @@ export const AdminEventDetails = () => {
     );
   }
 
+  // Calculate dynamic segment sizes for the SVG Doughnut Chart
+  const budgetItems = event.budgetItems || [];
+  const totalAllocated = budgetItems.reduce((acc, curr) => acc + (curr.allocated || 0), 0);
+  
+  const budgetColors = [
+    '#C9A27E', // Rose Gold
+    '#A8B8A3', // Sage
+    '#D8C3A5', // Champagne
+    '#B19FFB', // Lavender
+    '#F4A261', // Soft Orange
+    '#2A9D8F', // Soft Teal
+    '#E76F51', // Soft Coral
+    '#9D4EDD'  // Soft Purple
+  ];
+
+  let accumulatedPercent = 0;
+  const segments = budgetItems.map((item, idx) => {
+    const allocated = item.allocated || 0;
+    const percent = totalAllocated > 0 ? (allocated / totalAllocated) * 100 : 0;
+    const color = budgetColors[idx % budgetColors.length];
+    const segment = {
+      category: item.category,
+      allocated,
+      spent: item.spent || 0,
+      percent,
+      color,
+      dashArray: `${percent} ${100 - percent}`,
+      dashOffset: -accumulatedPercent
+    };
+    accumulatedPercent += percent;
+    return segment;
+  }).filter(s => s.percent > 0);
+
   return (
     <div className="space-y-8 pb-16 text-darktext dark:text-gray-300">
       
@@ -225,13 +259,6 @@ export const AdminEventDetails = () => {
               Chat Log
             </button>
           )}
-          <button
-            onClick={() => setIsEditEventOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rosegold text-white dark:bg-goldAccent dark:text-black text-xs font-bold hover:opacity-95 shadow-md cursor-pointer"
-          >
-            <FiSettings className="w-4 h-4" />
-            Edit Event
-          </button>
         </div>
       </div>
 
@@ -276,7 +303,7 @@ export const AdminEventDetails = () => {
             <>
               <div className="flex items-center space-x-3.5">
                 <img 
-                  src={event.plannerId?.profileImage || "https://addyevents.in/wp-content/uploads/2025/07/NRI-WEdding-Planner-.jpg"} 
+                  src={event.plannerId?.profileImage || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=256"} 
                   alt="Planner" 
                   className="w-12 h-12 rounded-full object-cover border border-rosegold/20"
                 />
@@ -296,54 +323,51 @@ export const AdminEventDetails = () => {
           ) : (
             <div className="py-6 text-center space-y-3">
               <p className="text-xs text-red-500/80 font-medium italic">No planner assigned to supervisor yet.</p>
-              <button
-                onClick={() => setIsPlannerModalOpen(true)}
-                className="px-4 py-1.5 rounded-lg border border-rosegold/30 dark:border-goldAccent/25 text-[11px] font-bold text-rosegold dark:text-goldAccent hover:bg-rosegold hover:text-white dark:hover:bg-goldAccent dark:hover:text-black transition-all cursor-pointer"
-              >
-                Assign Planner
-              </button>
-            </div>
-          )}
-
-          {event.plannerId && (
-            <div className="flex justify-end pt-1">
-              <button
-                onClick={() => setIsPlannerModalOpen(true)}
-                className="text-[10px] text-rosegold dark:text-goldAccent hover:underline font-bold cursor-pointer"
-              >
-                Change Lead Planner
-              </button>
             </div>
           )}
         </div>
 
         {/* 3. Event Meta Details */}
-        <div className="bg-white dark:bg-darkcard p-5 rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-darkcard p-5 rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 shadow-sm space-y-4 md:col-span-1">
           <div className="border-b border-rosegold/10 dark:border-goldAccent/10 pb-3 flex justify-between items-center">
-            <h3 className="font-playfair font-bold text-xs uppercase tracking-wider text-rosegold dark:text-goldAccent">Quick Overview</h3>
+            <h3 className="font-playfair font-bold text-xs uppercase tracking-wider text-rosegold dark:text-goldAccent">Planning Progress</h3>
             <FiClock className="w-4 h-4 text-rosegold/50 dark:text-goldAccent/50" />
           </div>
 
-          <div className="space-y-3 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-darktext/50 dark:text-gray-400 flex items-center gap-1.5"><FiCalendar className="w-3.5 h-3.5" /> Date:</span>
-              <span className="font-bold">{event.date ? new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'To Be Decided'}</span>
+          <div className="flex items-center gap-4">
+            {/* SVG Circular Progress Gauge */}
+            <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="34"
+                  className="stroke-cream dark:stroke-darkbg fill-transparent"
+                  strokeWidth="6"
+                />
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="34"
+                  className="stroke-rosegold dark:stroke-goldAccent fill-transparent transition-all duration-1000 ease-out"
+                  strokeWidth="6"
+                  strokeDasharray="213.6"
+                  strokeDashoffset={213.6 - (213.6 * (event.progress || 0)) / 100}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-playfair text-sm font-black text-darktext dark:text-white leading-none">{event.progress || 0}%</span>
+                <span className="text-[7px] text-darktext/40 dark:text-gray-500 font-bold uppercase tracking-wider mt-0.5">Status</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-darktext/50 dark:text-gray-400 flex items-center gap-1.5"><FiMapPin className="w-3.5 h-3.5" /> City:</span>
-              <span className="font-semibold">{event.location || 'Mumbai'}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-darktext/50 dark:text-gray-400 flex items-center gap-1.5"><FiMapPin className="w-3.5 h-3.5" /> Venue:</span>
-              <span className="font-semibold truncate max-w-[150px]">{event.venue || 'TBD'}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-darktext/50 dark:text-gray-400 flex items-center gap-1.5"><FiDollarSign className="w-3.5 h-3.5" /> Total Budget:</span>
-              <span className="font-bold text-rosegold dark:text-goldAccent">₹{formatINR(event.budget)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-darktext/50 dark:text-gray-400 flex items-center gap-1.5"><FiUsers className="w-3.5 h-3.5" /> Guests:</span>
-              <span className="font-bold">{event.guestCount || 0} Guests</span>
+
+            {/* Quick Meta details list */}
+            <div className="flex-1 space-y-2 text-[11px] overflow-hidden">
+              <div className="truncate"><span className="font-semibold text-darktext/50 dark:text-gray-400">City:</span> {event.location || 'Mumbai'}</div>
+              <div className="truncate"><span className="font-semibold text-darktext/50 dark:text-gray-400">Venue:</span> {event.venue || 'TBD'}</div>
+              <div><span className="font-semibold text-darktext/50 dark:text-gray-400">Date:</span> {event.date ? new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'TBD'}</div>
+              <div><span className="font-semibold text-darktext/50 dark:text-gray-400">Guests:</span> {event.guestCount || 0} Guests</div>
             </div>
           </div>
         </div>
@@ -357,33 +381,59 @@ export const AdminEventDetails = () => {
         <div className="lg:col-span-5 bg-white dark:bg-darkcard p-6 rounded-2xl border border-rosegold/20 dark:border-goldAccent/15 shadow-sm space-y-6">
           <div>
             <h3 className="font-playfair font-bold text-base text-darktext dark:text-white">Milestones Tracker</h3>
-            <p className="text-[10px] text-darktext/50 dark:text-gray-400 mt-0.5">Toggle milestones status to update client planning progress.</p>
+            <p className="text-[10px] text-darktext/50 dark:text-gray-400 mt-0.5">Planning milestones status progress timeline.</p>
           </div>
 
-          <div className="space-y-4 pl-2.5 relative border-l-2 border-rosegold/10 dark:border-goldAccent/10 ml-2">
-            {event.timeline && event.timeline.map((item, idx) => (
-              <div key={item._id || idx} className="relative pl-6 pb-2.5">
-                <button
-                  onClick={() => toggleTimelineStatus(idx, item.status)}
-                  className={`absolute -left-9 top-0.5 w-6 h-6 rounded-full flex items-center justify-center border cursor-pointer transition-all ${
-                    item.status === 'Completed'
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : 'bg-white dark:bg-darkcard border-rosegold/30 dark:border-goldAccent/25 text-rosegold/40 dark:text-goldAccent/35 hover:border-rosegold dark:hover:border-goldAccent'
-                  }`}
-                >
-                  <FiCheck className="w-3 h-3" />
-                </button>
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-playfair text-xs font-bold text-darktext dark:text-white">{item.title}</h4>
-                    <span className="text-[9px] text-darktext/40 dark:text-gray-500 font-medium">
-                      {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}
-                    </span>
+          <div className="space-y-5 relative ml-2.5">
+            {/* Dashed vertical connector line */}
+            <div className="absolute left-[11px] top-2 bottom-2 w-0.5 border-l-2 border-dashed border-rosegold/20 dark:border-goldAccent/15"></div>
+
+            {event.timeline && event.timeline.map((item, idx) => {
+              const isCompleted = item.status === 'Completed';
+              // Find if this is the active milestone (first pending one)
+              const isActive = !isCompleted && (idx === 0 || (event.timeline[idx - 1] && event.timeline[idx - 1].status === 'Completed'));
+
+              return (
+                <div key={item._id || idx} className="relative pl-8 flex gap-3.5 group">
+                  {/* Indicator Icon/Number */}
+                  <div
+                    className={`absolute left-0 top-1/2 -translate-y-1/2 w-[22px] h-[22px] rounded-full flex items-center justify-center border text-[9px] font-mono font-bold transition-all duration-300 shadow-sm z-10 ${
+                      isCompleted
+                        ? 'bg-green-500 border-green-500 text-white shadow-green-500/10'
+                        : isActive
+                        ? 'bg-amber-500 border-amber-500 text-white animate-pulse shadow-amber-500/20'
+                        : 'bg-white dark:bg-darkcard border-rosegold/30 dark:border-goldAccent/25 text-rosegold/50 dark:text-goldAccent/45'
+                    }`}
+                  >
+                    {isCompleted ? <FiCheck className="w-3.5 h-3.5 translate-y-[1px]" strokeWidth={3.5} /> : idx + 1}
                   </div>
-                  <p className="text-[10px] text-darktext/50 dark:text-gray-400 leading-normal">{item.description}</p>
+
+                  {/* Milestone Card Content */}
+                  <div className={`flex-1 p-3 rounded-xl border transition-all duration-300 ${
+                    isCompleted
+                      ? 'bg-green-500/5 border-green-500/10 dark:border-green-500/5'
+                      : isActive
+                      ? 'bg-amber-500/5 border-amber-500/20 dark:border-amber-500/10 ring-1 ring-amber-500/10'
+                      : 'bg-cream/5 border-rosegold/5 dark:border-goldAccent/5 group-hover:bg-cream/10 dark:group-hover:bg-darkbg/40'
+                  }`}>
+                    <div className="flex justify-between items-start gap-2">
+                      <h4 className="font-playfair text-xs font-black text-darktext dark:text-white flex items-center gap-1.5">
+                        {item.title}
+                        {isActive && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[7px] font-extrabold uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/15 animate-pulse">
+                            Active
+                          </span>
+                        )}
+                      </h4>
+                      <span className="text-[8px] font-mono text-darktext/40 dark:text-gray-500 font-bold bg-cream/30 dark:bg-darkbg px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'TBD'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-darktext/50 dark:text-gray-400 mt-1 leading-relaxed">{item.description}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -411,32 +461,62 @@ export const AdminEventDetails = () => {
             </div>
           )}
 
-          {/* Categories Progress list */}
-          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
-            {event.budgetItems && event.budgetItems.map((item, idx) => {
-              const allocated = item.allocated || 0;
-              const spent = item.spent || 0;
-              const percent = allocated > 0 ? Math.min(Math.round((spent / allocated) * 100), 100) : 0;
-              
-              return (
-                <div key={item._id || idx} className="space-y-1.5">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-darktext dark:text-white font-playfair">{item.category}</span>
-                    <span className="text-[10px] text-darktext/60 dark:text-gray-400 font-medium">
-                      Spent: <strong className="text-darktext dark:text-white font-bold">₹{formatINR(spent)}</strong> of ₹{formatINR(allocated)}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-cream dark:bg-darkbg overflow-hidden flex">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        percent >= 90 ? 'bg-red-500' : percent >= 75 ? 'bg-amber-500' : 'bg-rosegold dark:bg-goldAccent'
-                      }`}
-                      style={{ width: `${percent}%` }}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
+            {/* SVG Doughnut Chart */}
+            <div className="sm:col-span-5 flex justify-center">
+              <div className="relative w-40 h-40">
+                <svg viewBox="0 0 42 42" className="w-full h-full transform -rotate-90">
+                  <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="var(--fallback-bg, #E2E8F0)" strokeWidth="4.5" className="stroke-cream dark:stroke-darkbg" />
+                  {segments.map((seg, idx) => (
+                    <circle
+                      key={idx}
+                      cx="21"
+                      cy="21"
+                      r="15.9155"
+                      fill="transparent"
+                      stroke={seg.color}
+                      strokeWidth="4.5"
+                      strokeDasharray={seg.dashArray}
+                      strokeDashoffset={seg.dashOffset}
+                      className="transition-all duration-300"
                     />
-                  </div>
+                  ))}
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span className="font-playfair text-xs font-black text-darktext dark:text-white leading-none">Budget</span>
+                  <span className="text-[8px] text-rosegold dark:text-goldAccent font-bold uppercase tracking-wider mt-1">Split</span>
                 </div>
-              );
-            })}
+              </div>
+            </div>
+
+            {/* Categories & Progress legend */}
+            <div className="sm:col-span-7 space-y-3.5 max-h-[220px] overflow-y-auto pr-1">
+              {segments.map((item, idx) => {
+                const percent = item.allocated > 0 ? Math.min(Math.round((item.spent / item.allocated) * 100), 100) : 0;
+                return (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="flex items-center gap-1.5 font-bold text-darktext dark:text-white font-playfair">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                        {item.category}
+                      </span>
+                      <span className="text-[9px] text-darktext/50 dark:text-gray-400 font-semibold">
+                        ₹{formatINR(item.spent)} / ₹{formatINR(item.allocated)} ({percent}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-cream dark:bg-darkbg overflow-hidden flex">
+                      <div 
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${percent}%`, backgroundColor: item.color }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              {segments.length === 0 && (
+                <p className="text-center py-8 text-xs text-darktext/40 dark:text-gray-550 italic">No budget items allocated yet.</p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -447,15 +527,8 @@ export const AdminEventDetails = () => {
         <div className="flex justify-between items-center border-b border-rosegold/10 dark:border-goldAccent/10 pb-4">
           <div>
             <h3 className="font-playfair font-bold text-base text-darktext dark:text-white">Assigned Vendors List</h3>
-            <p className="text-[10px] text-darktext/50 dark:text-gray-400 mt-0.5">Manage and supervise catering, decor, and entertainment vendors.</p>
+            <p className="text-[10px] text-darktext/50 dark:text-gray-400 mt-0.5">Assigned catering, decor, and entertainment vendors.</p>
           </div>
-          <button
-            onClick={() => setIsVendorModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rosegold text-white dark:bg-goldAccent dark:text-black font-semibold text-xs hover:opacity-95 cursor-pointer shadow-sm"
-          >
-            <FiPlus className="w-3.5 h-3.5" />
-            Assign Vendor
-          </button>
         </div>
 
         {(!event.vendors || event.vendors.length === 0) ? (
@@ -463,36 +536,57 @@ export const AdminEventDetails = () => {
             <p className="text-xs text-darktext/50 dark:text-gray-400 italic">No vendors currently assigned to this event.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {event.vendors.map((vendor) => (
               <div 
                 key={vendor._id} 
-                className="p-4 rounded-xl border border-rosegold/15 dark:border-goldAccent/10 bg-ivory/20 dark:bg-darkbg/40 flex flex-col justify-between shadow-sm relative overflow-hidden"
+                className="p-5 rounded-2xl border border-rosegold/15 dark:border-goldAccent/10 bg-cream/10 dark:bg-darkcard/20 hover:scale-[1.01] hover:shadow-md transition-all duration-300 flex flex-col justify-between relative overflow-hidden group"
               >
-                <div className="space-y-3.5">
+                {/* Gold Top Stripe */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rosegold via-champagne to-rosegold opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div className="space-y-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="px-2 py-0.5 rounded bg-rosegold/10 text-rosegold dark:bg-goldAccent/10 dark:text-goldAccent text-[9px] font-bold tracking-wider uppercase border border-rosegold/15 dark:border-goldAccent/15">
-                        {vendor.vendorType || 'Catering'}
-                      </span>
-                      <h4 className="font-playfair font-black text-sm text-darktext dark:text-white mt-1.5 truncate max-w-[170px]">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded bg-rosegold/10 text-rosegold dark:bg-goldAccent/10 dark:text-goldAccent text-[9px] font-bold tracking-wider uppercase border border-rosegold/15 dark:border-goldAccent/15">
+                          {vendor.vendorType || 'Catering'}
+                        </span>
+                        {vendor.assignmentStatus && (
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide ${
+                            vendor.assignmentStatus === 'Accepted' || vendor.assignmentStatus === 'Completed'
+                              ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/15'
+                              : vendor.assignmentStatus === 'Pending'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/15'
+                              : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/15'
+                          }`}>
+                            {vendor.assignmentStatus}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="font-playfair font-black text-sm text-darktext dark:text-white mt-2 truncate max-w-[200px]">
                         {vendor.businessName || 'Royal Decorators'}
                       </h4>
                     </div>
-                    <button
-                      onClick={() => handleRemoveVendor(vendor._id)}
-                      title="Unassign vendor"
-                      className="p-1.5 rounded-lg text-darktext/30 hover:text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
-                    >
-                      <FiTrash2 className="w-3.5 h-3.5" />
-                    </button>
                   </div>
                   
-                  <div className="space-y-1.5 text-[11px] text-darktext/60 dark:text-gray-400">
-                    <div>Provided by: <strong className="text-darktext dark:text-gray-300 font-semibold">{vendor.name?.name || 'Chef Pankaj'}</strong></div>
-                    <div className="truncate">Email: {vendor.name?.email || 'vendor@example.com'}</div>
-                    <div>Phone: {vendor.name?.phoneNo || 'N/A'}</div>
-                    <div>Experience: {vendor.experience || '5+ Years'}</div>
+                  <div className="space-y-2 text-xs border-t border-rosegold/5 pt-3">
+                    <div className="flex items-center text-darktext/60 dark:text-gray-400">
+                      <FiUser className="w-3.5 h-3.5 mr-2.5 text-rosegold/70 dark:text-goldAccent/70" />
+                      <span>{vendor.name?.name || 'Chef Pankaj'}</span>
+                    </div>
+                    <div className="flex items-center text-darktext/60 dark:text-gray-400 truncate">
+                      <FiMail className="w-3.5 h-3.5 mr-2.5 text-rosegold/70 dark:text-goldAccent/70" />
+                      <span className="truncate">{vendor.name?.email || 'vendor@example.com'}</span>
+                    </div>
+                    <div className="flex items-center text-darktext/60 dark:text-gray-400">
+                      <FiPhone className="w-3.5 h-3.5 mr-2.5 text-rosegold/70 dark:text-goldAccent/70" />
+                      <span>{vendor.name?.phoneNo || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center text-darktext/60 dark:text-gray-400">
+                      <FiBriefcase className="w-3.5 h-3.5 mr-2.5 text-rosegold/70 dark:text-goldAccent/70" />
+                      <span>Experience: {vendor.experience || '5+ Years'}</span>
+                    </div>
                   </div>
                 </div>
               </div>

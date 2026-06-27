@@ -1490,6 +1490,25 @@ export const PlannerDashboard = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block mb-1 text-[10px] uppercase text-slate-400">Profile Photo URL</label>
+                        <div className="flex gap-2 mb-2 flex-wrap">
+                          {[
+                            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=256',
+                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256',
+                            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256',
+                            'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=256',
+                            'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=256'
+                          ].map((url, idx) => (
+                            <img
+                              key={idx}
+                              src={url}
+                              onClick={() => setProfileForm({ ...profileForm, profileImage: url })}
+                              alt="Preset Avatar"
+                              className={`w-8 h-8 rounded-full object-cover cursor-pointer border-2 transition-all ${
+                                profileForm.profileImage === url ? 'border-rosegold dark:border-goldAccent scale-110' : 'border-transparent opacity-60 hover:opacity-100'
+                              }`}
+                            />
+                          ))}
+                        </div>
                         <input
                           type="text"
                           value={profileForm.profileImage}

@@ -11,170 +11,164 @@ import Testimonials from '../components/Testimonials';
 import FAQ from '../components/FAQ';
 import Contact from '../components/Contact';
 import Footer from '../components/Footer';
+import logoImage from '../assets/logo.png';
+import marbleBg from '../assets/marble_bg.jpg';
 
-// Concept 4: Delicate Script & Watercolor (Peach Blossoms on Ivory) Splash Screen
+// Premium animated luxury loading screen
 const SplashLoader = () => {
   const [petals, setPetals] = useState([]);
+  const [sparkles, setSparkles] = useState([]);
 
   useEffect(() => {
-    // Generate 35 random petals for a dense windgust
-    const newPetals = Array.from({ length: 35 }).map((_, i) => ({
-      id: i,
-      startY: 25 + Math.random() * 50, // percent height
-      endY: 15 + Math.random() * 60,
-      delay: Math.random() * 1.8, // delay in seconds
-      duration: 3.8 + Math.random() * 1.4, // speed of petal flight
-      size: 10 + Math.random() * 12,
-      type: Math.random() > 0.55 ? 'pink' : 'white',
-      scale: 0.85 + Math.random() * 0.4, // varying orbit radius multiplier
-      rotation: Math.random() * 360,
-      driftY: -40 + Math.random() * 80, // drift factor
-    }));
+    // Generate 45 rose petals starting from left-top side traveling diagonally to right-bottom
+    const newPetals = Array.from({ length: 45 }).map((_, i) => {
+      const scale = 0.65 + Math.random() * 0.55;
+      return {
+        id: i,
+        startX: -30 + Math.random() * 25, // top-left starting position
+        startY: -20 + Math.random() * 25, // top-left starting position
+        delay: Math.random() * 3.8, // staggered delay in seconds for continuous stream
+        duration: 5.2 + Math.random() * 2.4, // float time
+        size: 9 + Math.random() * 13,
+        type: Math.random() > 0.65 ? 'rose' : 'pink',
+        scale,
+        rotation: Math.random() * 360,
+        driftY: 20 + Math.random() * 70, // drift factor
+      };
+    });
     setPetals(newPetals);
+
+    // Generate 20 glowing sparkles around the circle
+    const newSparkles = Array.from({ length: 20 }).map((_, i) => ({
+      id: i,
+      angle: (i * 360) / 20,
+      delay: Math.random() * 2,
+      scale: 0.5 + Math.random() * 0.8
+    }));
+    setSparkles(newSparkles);
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden">
-      {/* Soft cream/marble gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-[#FAF7F2] via-[#FCFAF6] to-[#F5EFE6] dark:from-[#1D1916] dark:via-[#221E1A] dark:to-[#171412]" />
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ 
+        opacity: 0,
+        filter: "blur(12px)",
+        transition: { duration: 0.9, ease: "easeInOut" }
+      }}
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#FAF7F2]"
+    >
+      {/* Luxury White Marble Parallax Background (Scene 1) */}
+      <motion.div
+        animate={{ 
+          scale: [1, 1.04],
+          x: [0, -8, 0],
+          y: [0, -4, 0]
+        }}
+        transition={{ 
+          duration: 9, 
+          ease: "linear",
+          repeat: Infinity
+        }}
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ 
+          backgroundImage: `url(${marbleBg})`
+        }}
+      />
+      {/* Soft champagne gradient overlay to keep it luxury and light */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-[#FAF7F2]/80 via-[#FCFAF6]/70 to-[#F5EFE6]/80 mix-blend-overlay pointer-events-none" />
+      <div className="absolute inset-0 bg-white/10 pointer-events-none" />
 
-      {/* Subtle luxury marble textures */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <path d="M-100,150 C250,220 450,-50 650,320 C850,490 1050,120 1250,420" fill="none" stroke="#C9A27E" strokeWidth="1" strokeOpacity="0.4" />
-          <path d="M120,-30 C320,160 520,30 720,270 C920,380 1120,60 1320,320" fill="none" stroke="#C9A27E" strokeWidth="0.5" strokeOpacity="0.3" />
-        </svg>
+      {/* Floating Sparkles around Wreath (Scene 4) */}
+      <div className="absolute inset-0 pointer-events-none z-10">
+        {sparkles.map((sp) => {
+          const radius = 95; // radius of gold ring
+          const rad = (sp.angle * Math.PI) / 180;
+          const x = 50 + (radius / 10) * Math.cos(rad); // percent left
+          const y = 50 + (radius / 10) * Math.sin(rad); // percent top
+          return (
+            <motion.div
+              key={`sparkle-${sp.id}`}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ 
+                opacity: [0, 0.8, 0], 
+                scale: [0.3, sp.scale, 0.3],
+                x: [`calc(${x}vw - 2px)`, `calc(${x}vw + ${Math.random() * 10 - 5}px)`],
+                y: [`calc(${y}vh - 2px)`, `calc(${y}vh + ${Math.random() * 10 - 5}px)`]
+              }}
+              transition={{
+                duration: 3 + Math.random() * 2,
+                repeat: Infinity,
+                delay: sp.delay + 1.5, // starts showing after logo starts revealing
+                ease: "easeInOut"
+              }}
+              className="absolute w-1 h-1 rounded-full bg-gradient-to-r from-rosegold via-[#D8C3A5] to-rosegold shadow-[0_0_6px_rgba(201,162,126,0.9)]"
+            />
+          );
+        })}
       </div>
 
-      {/* Petals swirling around */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {/* Floating Petals Swirling (Scene 2, 4, 5) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
         {petals.map((petal) => (
           <div
             key={petal.id}
-            className={`absolute splash-petal splash-petal-${petal.type}`}
+            className="petal-container"
             style={{
               width: `${petal.size}px`,
-              height: `${petal.size * 0.75}px`,
+              height: `${petal.size * 0.78}px`,
               animationDelay: `${petal.delay}s`,
               animationDuration: `${petal.duration}s`,
+              '--start-x': `${petal.startX}vw`,
               '--start-y': `${petal.startY}vh`,
-              '--end-y': `${petal.endY}vh`,
-              '--scale': petal.scale,
               '--drift-y': `${petal.driftY}px`,
-              '--start-rot': `${petal.rotation}deg`,
             }}
-          />
+          >
+            <div
+              className={`splash-petal splash-petal-${petal.type}`}
+              style={{
+                animationDelay: `${petal.delay * 0.3}s`,
+                animationDuration: `${2.6 + petal.scale * 1.6}s`,
+                '--scale': petal.scale,
+                '--start-rot': `${petal.rotation}deg`,
+              }}
+            />
+          </div>
         ))}
       </div>
 
-      {/* Center Watercolor Logo */}
+      {/* Center Logo Crest (Scene 3 & 4) */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.8 }}
-        className="relative z-10 flex flex-col items-center justify-center"
+        transition={{ delay: 1.2, duration: 1.4, ease: "easeOut" }}
+        className="relative z-30 flex flex-col items-center justify-center"
       >
-        {/* Luxury Gold/Watercolor Crest */}
-        <div className="w-56 h-56 rounded-full flex items-center justify-center p-2 relative bg-gradient-to-tr from-[#FAF5F0] via-[#FCFBF9] to-[#F5EFE6] shadow-2xl border border-rosegold/10 dark:border-goldAccent/10">
+        {/* Luxury Gold Monogram Emblem */}
+        <div className="w-56 h-56 rounded-full flex items-center justify-center p-2 relative bg-white/20 backdrop-blur-sm border border-rosegold/10 shadow-[0_10px_35px_rgba(201,162,126,0.1)]">
+          {/* Subtle gold ring wreath shadow */}
+          <div className="absolute inset-3 rounded-full border border-dashed border-rosegold/10 animate-[spin_50s_linear_infinite]" />
           
-          {/* Watercolor background effect */}
-          <div className="absolute inset-2 rounded-full opacity-65 bg-gradient-to-b from-[#ffe5d9] via-[#ffccd5] to-transparent filter blur-md pointer-events-none" />
+          <div className="text-center z-10 flex flex-col items-center justify-center">
+            {/* Elegant Website Logo Image */}
+            <img 
+              src={logoImage} 
+              alt="EvenAfter Logo" 
+              className="w-14 h-14 rounded-xl object-cover shadow-md mb-3 border border-rosegold/10 transition-transform hover:scale-105 duration-500" 
+            />
 
-          {/* SVG Peach Blossoms / Gold Wreath Border */}
-          <svg width="220" height="220" viewBox="0 0 200 200" className="absolute pointer-events-none">
-            <defs>
-              <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#DFBA93" />
-                <stop offset="50%" stopColor="#C9A27E" />
-                <stop offset="100%" stopColor="#9E7854" />
-              </linearGradient>
-            </defs>
-
-            {/* Concentric rings */}
-            <path d="M 45 45 A 78 78 0 1 0 155 155" fill="none" stroke="url(#gold-grad)" strokeWidth="1.5" />
-            <path d="M 155 155 A 78 78 0 0 0 45 45" fill="none" stroke="url(#gold-grad)" strokeWidth="1.5" className="opacity-25" />
-            <path d="M 52 52 A 68 68 0 1 0 148 148" fill="none" stroke="url(#gold-grad)" strokeWidth="0.75" />
-
-            {/* Wreath Top-Left */}
-            <g transform="translate(100, 100)">
-              <path d="M -55 -55 C -75 -35 -85 -10 -85 15" fill="none" stroke="url(#gold-grad)" strokeWidth="1.25" />
-              
-              {/* Leaves */}
-              <g transform="translate(-55, -55) rotate(45) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0 C -10 10 -5 15 0 0" fill="url(#gold-grad)" />
-              </g>
-              <g transform="translate(-66, -44) rotate(30) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0" fill="url(#gold-grad)" />
-              </g>
-              <g transform="translate(-76, -28) rotate(15) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0" fill="url(#gold-grad)" />
-              </g>
-              <g transform="translate(-82, -10) rotate(0) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0" fill="url(#gold-grad)" />
-              </g>
-              <g transform="translate(-82, 8) rotate(-15) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0" fill="url(#gold-grad)" />
-              </g>
-              {/* Flower buds along the stem */}
-              <g transform="translate(-48, -58) scale(0.4)">
-                <circle cx="0" cy="0" r="5" fill="url(#gold-grad)" />
-                <circle cx="-7" cy="0" r="4.5" fill="url(#gold-grad)" />
-                <circle cx="7" cy="0" r="4.5" fill="url(#gold-grad)" />
-                <circle cx="0" cy="-7" r="4.5" fill="url(#gold-grad)" />
-                <circle cx="0" cy="7" r="4.5" fill="url(#gold-grad)" />
-              </g>
-            </g>
-
-            {/* Wreath Bottom-Right */}
-            <g transform="translate(100, 100)">
-              <path d="M 55 55 C 75 35 85 10 85 -15" fill="none" stroke="url(#gold-grad)" strokeWidth="1.25" />
-              
-              {/* Leaves */}
-              <g transform="translate(55, 55) rotate(225) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0 C -10 10 -5 15 0 0" fill="url(#gold-grad)" />
-              </g>
-              <g transform="translate(66, 44) rotate(210) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0" fill="url(#gold-grad)" />
-              </g>
-              <g transform="translate(76, 28) rotate(195) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0" fill="url(#gold-grad)" />
-              </g>
-              <g transform="translate(82, 10) rotate(180) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0" fill="url(#gold-grad)" />
-              </g>
-              <g transform="translate(82, -8) rotate(165) scale(0.7)">
-                <path d="M0 0 C 10 -15 20 -10 0 0" fill="url(#gold-grad)" />
-              </g>
-              {/* Flower buds along the stem */}
-              <g transform="translate(48, 58) scale(0.4)">
-                <circle cx="0" cy="0" r="5" fill="url(#gold-grad)" />
-                <circle cx="-7" cy="0" r="4.5" fill="url(#gold-grad)" />
-                <circle cx="7" cy="0" r="4.5" fill="url(#gold-grad)" />
-                <circle cx="0" cy="-7" r="4.5" fill="url(#gold-grad)" />
-                <circle cx="0" cy="7" r="4.5" fill="url(#gold-grad)" />
-              </g>
-            </g>
-          </svg>
-
-          {/* Text Content */}
-          <div className="text-center z-10 flex flex-col items-center justify-center pt-2">
-            {/* Elegant Serif Initials "EA" */}
-            <span className="font-playfair text-5xl font-bold tracking-tighter gold-text-grad leading-none select-none">
-              EA
-            </span>
-            {/* Logo Name "EvenAfter" */}
-            <span className="font-playfair text-xl font-bold tracking-normal text-[#A27C58] dark:text-[#DFBA93] mt-2 select-none">
+            {/* Serif Name */}
+            <span className="font-playfair text-2xl font-bold tracking-wider bg-gradient-to-r from-[#DFBA93] via-[#C9A27E] to-[#9E7854] bg-clip-text text-transparent select-none leading-none font-semibold">
               EvenAfter
             </span>
-            {/* Subtext "Wedding Network" */}
-            <span className="font-playfair text-[8px] uppercase tracking-[0.2em] text-[#A27C58]/80 dark:text-[#DFBA93]/80 mt-1 select-none font-semibold">
-              Wedding Network
+            {/* Tagline */}
+            <span className="font-roboto text-[7px] uppercase tracking-[0.25em] text-[#9E7854]/85 mt-2 select-none font-extrabold">
+              Where Every Celebration Begins Beautifully
             </span>
           </div>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -223,85 +217,65 @@ const Home = () => {
           -webkit-text-fill-color: transparent;
         }
 
-        @keyframes petal-orbit-wind {
+        @keyframes petal-diagonal-path {
           0% {
-            transform: translate3d(-10vw, var(--start-y), 0) rotate(0deg);
+            transform: translate3d(var(--start-x), var(--start-y), 0);
             opacity: 0;
           }
-          8% {
-            opacity: 0.9;
+          10% {
+            opacity: 0.95;
           }
-          /* Approach the left edge of the logo circular boundary */
-          25% {
-            transform: translate3d(calc(50vw - (110px * var(--scale, 1))), calc(50vh + (var(--drift-y) * var(--scale, 1))), 0) rotate(120deg);
+          90% {
+            opacity: 0.95;
           }
-          /* Orbit Around Logo (1.5 loops clockwise) */
-          31% {
-            transform: translate3d(calc(50vw - (77px * var(--scale, 1))), calc(50vh - (77px * var(--scale, 1))), 0) rotate(210deg);
-          }
-          37% {
-            transform: translate3d(calc(50vw), calc(50vh - (110px * var(--scale, 1))), 0) rotate(300deg);
-          }
-          43% {
-            transform: translate3d(calc(50vw + (77px * var(--scale, 1))), calc(50vh - (77px * var(--scale, 1))), 0) rotate(390deg);
-          }
-          49% {
-            transform: translate3d(calc(50vw + (110px * var(--scale, 1))), calc(50vh), 0) rotate(480deg);
-          }
-          55% {
-            transform: translate3d(calc(50vw + (77px * var(--scale, 1))), calc(50vh + (77px * var(--scale, 1))), 0) rotate(570deg);
-          }
-          61% {
-            transform: translate3d(calc(50vw), calc(50vh + (110px * var(--scale, 1))), 0) rotate(660deg);
-          }
-          67% {
-            transform: translate3d(calc(50vw - (77px * var(--scale, 1))), calc(50vh + (77px * var(--scale, 1))), 0) rotate(750deg);
-          }
-          73% {
-            transform: translate3d(calc(50vw - (110px * var(--scale, 1))), calc(50vh), 0) rotate(840deg);
-          }
-          /* Swirling the top half again for elegant exit transition */
-          79% {
-            transform: translate3d(calc(50vw - (77px * var(--scale, 1))), calc(50vh - (77px * var(--scale, 1))), 0) rotate(930deg);
-          }
-          85% {
-            transform: translate3d(calc(50vw), calc(50vh - (110px * var(--scale, 1))), 0) rotate(1020deg);
-          }
-          91% {
-            transform: translate3d(calc(50vw + (77px * var(--scale, 1))), calc(50vh - (77px * var(--scale, 1))), 0) rotate(1110deg);
-          }
-          95% {
-            transform: translate3d(calc(50vw + (110px * var(--scale, 1))), calc(50vh), 0) rotate(1180deg);
-            opacity: 0.9;
-          }
-          /* Exit right edge (Fully visible!) */
           100% {
-            transform: translate3d(110vw, var(--end-y), 0) rotate(1300deg);
-            opacity: 0.9;
+            transform: translate3d(calc(var(--start-x) + 125vw), calc(var(--start-y) + 105vh + var(--drift-y)), 0);
+            opacity: 0;
           }
+        }
+
+        @keyframes petal-sway-wave {
+          0% {
+            transform: rotate(var(--start-rot)) translateX(-20px) scale(0.5);
+          }
+          50% {
+            transform: rotate(calc(var(--start-rot) + 180deg)) translateX(20px) scale(var(--scale));
+          }
+          100% {
+            transform: rotate(calc(var(--start-rot) + 360deg)) translateX(-20px) scale(0.5);
+          }
+        }
+
+        .petal-container {
+          position: absolute;
+          pointer-events: none;
+          animation-name: petal-diagonal-path;
+          animation-iteration-count: 1;
+          animation-fill-mode: forwards;
+          animation-timing-function: cubic-bezier(0.35, 0.1, 0.25, 1);
+          opacity: 0;
         }
 
         .splash-petal {
-          position: absolute;
-          pointer-events: none;
-          animation-name: petal-orbit-wind;
-          animation-iteration-count: 1;
-          animation-fill-mode: forwards;
-          animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          opacity: 0;
+          width: 100%;
+          height: 100%;
+          animation-name: petal-sway-wave;
+          animation-iteration-count: infinite;
+          animation-direction: alternate;
+          animation-timing-function: ease-in-out;
           transform-style: preserve-3d;
         }
 
-        .splash-petal-pink {
-          background: radial-gradient(circle at 35% 35%, #fff5f5 0%, #ffccd5 60%, #ffb7b2 100%);
-          border-radius: 50% 10% 50% 50%;
-          box-shadow: 1px 1px 3px rgba(255, 183, 178, 0.3);
+        .splash-petal-rose {
+          background: radial-gradient(circle at 35% 35%, #fff0f5 0%, #ffa5b8 50%, #f47a95 100%);
+          border-radius: 50% 15% 55% 50%;
+          box-shadow: 1px 1px 4px rgba(244, 122, 149, 0.25);
         }
 
-        .splash-petal-white {
-          background: radial-gradient(circle at 35% 35%, #ffffff 0%, #fff0f5 70%, #ffd1dc 100%);
-          border-radius: 40% 10% 40% 40%;
-          box-shadow: 1px 1px 3px rgba(220, 180, 180, 0.2);
+        .splash-petal-pink {
+          background: radial-gradient(circle at 35% 35%, #ffffff 0%, #ffccd5 60%, #ffa3b1 100%);
+          border-radius: 40% 12% 42% 40%;
+          box-shadow: 1px 1px 4px rgba(255, 163, 177, 0.2);
         }
       `}} />
 
@@ -309,7 +283,12 @@ const Home = () => {
         {showSplash && <SplashLoader />}
       </AnimatePresence>
 
-      <div className="bg-ivory dark:bg-darkbg text-darktext dark:text-gray-300 font-roboto min-h-screen select-none overflow-x-hidden transition-colors duration-300">
+      <motion.div 
+        initial={{ filter: "blur(12px)", opacity: 0.8 }}
+        animate={!showSplash ? { filter: "blur(0px)", opacity: 1 } : {}}
+        transition={{ duration: 1.2, ease: "easeOut" }}
+        className="bg-ivory dark:bg-darkbg text-darktext dark:text-gray-300 font-roboto min-h-screen select-none overflow-x-hidden transition-colors duration-300"
+      >
         <Navbar />
         <Hero />
         <About />
@@ -321,7 +300,7 @@ const Home = () => {
         <FAQ />
         <Contact />
         <Footer />
-      </div>
+      </motion.div>
     </>
   );
 };
