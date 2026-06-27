@@ -32,6 +32,11 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 
+// Root route
+app.get("/", (req, res) => {
+    res.json({ message: "VendorNet Backend API is running successfully!" });
+});
+
 // Api Routes
 app.use("/api/auth", authRouter);
 app.use("/api/planners", plannerRouter);
