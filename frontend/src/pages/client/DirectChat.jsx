@@ -90,7 +90,7 @@ export const DirectChat = () => {
 
     // Connect to backend server socket with JWT authentication token
     const token = localStorage.getItem('token');
-    const socket = io(window.location.origin, {
+    const socket = io(import.meta.env.VITE_BACKEND_URL || window.location.origin, {
       transports: ['websocket', 'polling'],
       auth: { token },
       reconnection: true,

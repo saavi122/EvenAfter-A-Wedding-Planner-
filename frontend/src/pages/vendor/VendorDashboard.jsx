@@ -317,7 +317,7 @@ export const VendorDashboard = () => {
   useEffect(() => {
     if (!user?._id) return;
     const token = localStorage.getItem('token');
-    const socket = io(window.location.origin, {
+    const socket = io(import.meta.env.VITE_BACKEND_URL || window.location.origin, {
       transports: ['websocket', 'polling'],
       auth: { token }
     });
